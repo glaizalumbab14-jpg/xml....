@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rentarium - Apartment Rental Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <img src="assets/logo/rentarium-logo.png" alt="Rentarium Logo" style="height: 40px;">
+                <span>Rentarium</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li class="login-buttons">
+                    <a href="admin-login.html" class="btn-admin"><i class="fas fa-user-shield"></i> Admin Login</a>
+                    <a href="tenant-login.html" class="btn-tenant"><i class="fas fa-user"></i> Tenant Login</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Streamline Your Apartment Rental Management</h1>
+            <p>Efficiently manage rooms, tenants, payments, and announcements in one centralized platform.</p>
+            <div class="hero-buttons">
+                <a href="admin-login.html" class="btn btn-primary">Get Started as Admin</a>
+                <a href="tenant-login.html" class="btn btn-secondary">Tenant Portal</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Modern Apartment">
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <h2>System Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <i class="fas fa-user-shield"></i>
+                <h3>Admin Dashboard</h3>
+                <p>Full control over rooms, tenants, payments, and announcements.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-home"></i>
+                <h3>Room Management</h3>
+                <p>Track availability, occupancy, and room details in real-time.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-file-contract"></i>
+                <h3>Rental Requests</h3>
+                <p>Manage tenant requests and approve/decline applications.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-credit-card"></i>
+                <h3>Payment Tracking</h3>
+                <p>Record and verify rent payments with QR code simulation.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-bullhorn"></i>
+                <h3>Announcements</h3>
+                <p>Post important updates and notifications for tenants.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Reports & Analytics</h3>
+                <p>Generate reports on occupancy, payments, and tenant history.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Rentarium</h3>
+                <p>Apartment Rental Management System</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="admin-login.html">Admin Login</a></li>
+                    <li><a href="tenant-login.html">Tenant Login</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact</h3>
+                <p>Email: support@rentarium.com</p>
+                <p>Phone: (123) 456-7890</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Rentarium. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/utils.js"></script>
+    <script>
+        // Mobile menu toggle
+        document.querySelector('.hamburger').addEventListener('click', function() {
+            document.querySelector('.nav-menu').classList.toggle('active');
+        });
+
+        // Check if data is initialized
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!localStorage.getItem('rentarium_initialized')) {
+                initializeSystem();
+            }
+        });
+
+        function initializeSystem() {
+            // Initialize admin account
+            const adminAccount = {
+                username: 'admin',
+                password: 'admin123',
+                email: 'admin@rentarium.com',
+                fullName: 'System Administrator',
+                createdAt: new Date().toISOString()
+            };
+            localStorage.setItem('admin_account', JSON.stringify(adminAccount));
+            
+            // Initialize empty arrays for system data
+            localStorage.setItem('tenants', JSON.stringify([]));
+            localStorage.setItem('rooms', JSON.stringify([]));
+            localStorage.setItem('rental_requests', JSON.stringify([]));
+            localStorage.setItem('payments', JSON.stringify([]));
+            localStorage.setItem('announcements', JSON.stringify([]));
+            
+            // Mark system as initialized
+            localStorage.setItem('rentarium_initialized', 'true');
+            
+            console.log('System initialized with default admin account');
+        }
+    </script>
+</body>
+</html>

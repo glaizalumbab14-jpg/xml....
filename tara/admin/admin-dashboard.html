@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Admin Dashboard</h1>
+                    <p>Welcome back, <span id="currentAdminName">Admin</span></p>
+                </div>
+                <div class="current-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="currentDate"></span>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <!-- Statistics Cards -->
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Total Rooms</h3>
+                            <i class="fas fa-home fa-2x" style="color: #3498db;"></i>
+                        </div>
+                        <div class="card-value" id="totalRooms">0</div>
+                        <div class="card-footer">
+                            <span id="availableRooms">0 Available</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Active Tenants</h3>
+                            <i class="fas fa-users fa-2x" style="color: #27ae60;"></i>
+                        </div>
+                        <div class="card-value" id="totalTenants">0</div>
+                        <div class="card-footer">
+                            <span id="occupiedRooms">0 Rooms Occupied</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pending Requests</h3>
+                            <i class="fas fa-clock fa-2x" style="color: #f39c12;"></i>
+                        </div>
+                        <div class="card-value" id="pendingRequests">0</div>
+                        <div class="card-footer">
+                            <a href="admin-rental-requests.html">View All Requests</a>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Monthly Revenue</h3>
+                            <i class="fas fa-money-bill-wave fa-2x" style="color: #9b59b6;"></i>
+                        </div>
+                        <div class="card-value" id="monthlyRevenue">₱0</div>
+                        <div class="card-footer">
+                            <span id="collectionRate">0% Collected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions" style="margin-top: 30px;">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="window.location.href='admin-create-tenant.html'">
+                            <i class="fas fa-user-plus"></i> Create New Tenant
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.location.href='admin-manage-rooms.html'">
+                            <i class="fas fa-plus-circle"></i> Add New Room
+                        </button>
+                        <button class="btn btn-success" onclick="window.location.href='admin-announcements.html'">
+                            <i class="fas fa-bullhorn"></i> Post Announcement
+                        </button>
+                        <button class="btn btn-warning" onclick="loadSampleData()">
+                            <i class="fas fa-database"></i> Load Sample Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="recent-activities" style="margin-top: 40px;">
+                    <h3>Recent Activities</h3>
+                    <div class="activities-list" id="activitiesList">
+                        <!-- Activities will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/admin.js"></script>
+    <script>   
+
+
+                          
+
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        // Load dashboard data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set admin name
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+                document.getElementById('currentAdminName').textContent = admin.fullName || admin.username;
+            }
+
+            // Set current date
+            const now = new Date();
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+
+            // Load dashboard statistics
+            loadDashboardStats();
+            loadRecentActivities();
+        });
+
+        function loadDashboardStats() {
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+
+            // Total rooms
+            document.getElementById('totalRooms').textContent = rooms.length;
+            
+            // Available rooms
+            const availableRooms = rooms.filter(room => room.status === 'available');
+            document.getElementById('availableRooms').textContent = 
+                `${availableRooms.length} Available`;
+
+            // Active tenants
+            const activeTenants = tenants.filter(tenant => tenant.status === 'active');
+            document.getElementById('totalTenants').textContent = activeTenants.length;
+            
+            // Occupied rooms
+            const occupiedRooms = rooms.filter(room => room.status === 'occupied');
+            document.getElementById('occupiedRooms').textContent = 
+                `${occupiedRooms.length} Rooms Occupied`;
+
+            // Pending requests
+            const pendingRequests = requests.filter(req => req.status === 'pending');
+            document.getElementById('pendingRequests').textContent = pendingRequests.length;
+
+            // Monthly revenue calculation
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const monthlyPayments = payments.filter(payment => {
+                const paymentDate = new Date(payment.paymentDate);
+                return paymentDate.getMonth() === currentMonth && 
+                       paymentDate.getFullYear() === currentYear &&
+                       payment.status === 'paid';
+            });
+
+            const totalRevenue = monthlyPayments.reduce((sum, payment) => sum + payment.amount, 0);
+            document.getElementById('monthlyRevenue').textContent = 
+                RentariumUtils.formatCurrency(totalRevenue);
+
+            // Collection rate
+            const totalExpected = occupiedRooms.reduce((sum, room) => sum + room.price, 0);
+            const collectionRate = totalExpected > 0 ? (totalRevenue / totalExpected * 100).toFixed(1) : 0;
+            document.getElementById('collectionRate').textContent = `${collectionRate}% Collected`;
+        }
+
+        function loadRecentActivities() {
+            const activitiesList = document.getElementById('activitiesList');
+            activitiesList.innerHTML = '';
+
+            // Combine recent activities from different sources
+            const activities = [];
+
+            // Get recent payments
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            payments.slice(-5).forEach(payment => {
+                activities.push({
+                    type: 'payment',
+                    icon: 'fas fa-credit-card',
+                    color: 'green',
+                    text: `${payment.tenantName} paid ${RentariumUtils.formatCurrency(payment.amount)}`,
+                    time: payment.paymentDate
+                });
+            });
+
+            // Get recent requests
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            requests.slice(-5).forEach(request => {
+                activities.push({
+                    type: 'request',
+                    icon: 'fas fa-file-contract',
+                    color: 'blue',
+                    text: `New rental request received`,
+                    time: request.requestDate
+                });
+            });
+
+            // Get recent announcements
+            const announcements = JSON.parse(localStorage.getItem('announcements')) || [];
+            announcements.slice(-3).forEach(ann => {
+                activities.push({
+                    type: 'announcement',
+                    icon: 'fas fa-bullhorn',
+                    color: 'orange',
+                    text: `New announcement: ${ann.title}`,
+                    time: ann.date
+                });
+            });
+
+            // Sort by time (newest first)
+            activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+            // Display recent activities
+            activities.slice(0, 10).forEach(activity => {
+                const activityElement = document.createElement('div');
+                activityElement.className = 'activity-item';
+                activityElement.innerHTML = `
+                    <div style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                        <div style="margin-right: 15px;">
+                            <i class="${activity.icon}" style="color: ${activity.color}; font-size: 1.2rem;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <p style="margin: 0; font-weight: 500;">${activity.text}</p>
+                            <small style="color: #666;">${RentariumUtils.formatDate(activity.time)}</small>
+                        </div>
+                    </div>
+                `;
+                activitiesList.appendChild(activityElement);
+            });
+
+            if (activities.length === 0) {
+                activitiesList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No recent activities</p>';
+            }
+        }
+
+        function loadSampleData() {
+            RentariumUtils.loadSampleData();
+            loadDashboardStats();
+            loadRecentActivities();
+            RentariumUtils.showNotification('Sample data loaded successfully!', 'success');
+        }
+
+        // Refresh dashboard every 30 seconds
+        setInterval(() => {
+            loadDashboardStats();
+            loadRecentActivities();
+        }, 30000);
+    </script>
+</body>
+</html>

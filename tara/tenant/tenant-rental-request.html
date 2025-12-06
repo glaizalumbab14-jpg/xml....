@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Rental Request - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .request-stepper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .stepper:before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e1e5e9;
+            z-index: 1;
+        }
+        .step {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: #e1e5e9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+            color: #666;
+        }
+        .step.active .step-number {
+            background: #3498db;
+            color: white;
+        }
+        .step.completed .step-number {
+            background: #27ae60;
+            color: white;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+        .room-selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .room-option {
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .room-option.selected {
+            border-color: #3498db;
+            background: #e3f2fd;
+        }
+        .request-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .contract-terms {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="tenantInitial">T</div>
+                    <div>
+                        <p id="tenantName">Tenant</p>
+                        <small>Tenant Portal</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="tenant-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="tenant-room-list.html"><i class="fas fa-home"></i> Browse Rooms</a></li>
+                <li><a href="tenant-rental-request.html" class="active"><i class="fas fa-file-contract"></i> Rental Request</a></li>
+                <li><a href="tenant-payment.html"><i class="fas fa-credit-card"></i> Make Payment</a></li>
+                <li><a href="tenant-payment-history.html"><i class="fas fa-history"></i> Payment History</a></li>
+                <li><a href="tenant-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Submit Rental Request</h1>
+                    <p>Request to rent a new apartment room</p>
+                </div>
+                <a href="tenant-room-list.html" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Browse Rooms
+                </a>
+            </div>
+
+            <div class="content-container">
+                <!-- Stepper -->
+                <div class="request-stepper" id="stepper">
+                    <div class="step active" id="step1">
+                        <div class="step-number">1</div>
+                        <div>Select Room</div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-number">2</div>
+                        <div>Details</div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-number">3</div>
+                        <div>Review</div>
+                    </div>
+                    <div class="step" id="step4">
+                        <div class="step-number">4</div>
+                        <div>Submit</div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Select Room -->
+                <div class="step-content active" id="step1-content">
+                    <h3>Step 1: Select a Room</h3>
+                    <p>Choose from available rooms below:</p>
+                    
+                    <div id="availableRoomsGrid" class="room-selection-grid">
+                        <!-- Rooms will be loaded here -->
+                    </div>
+                    
+                    <div class="form-actions" style="margin-top: 30px;">
+                        <button class="btn btn-primary" onclick="nextStep(2)" id="nextStep1" disabled>
+                            Next: Room Details <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Details -->
+                <div class="step-content" id="step2-content">
+                    <h3>Step 2: Rental Details</h3>
+                    
+                    <div class="request-summary" id="roomSummary">
+                        <!-- Room summary will be loaded here -->
+                    </div>
+                    
+                    <form id="rentalDetailsForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Preferred Move-in Date *</label>
+                                <input type="date" id="moveInDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Contract Duration *</label>
+                                <select id="contractDuration" required>
+                                    <option value="">Select Duration</option>
+                                    <option value="6">6 months</option>
+                                    <option value="12" selected>12 months</option>
+                                    <option value="18">18 months</option>
+                                    <option value="24">24 months</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Number of Occupants</label>
+                                <select id="occupants">
+                                    <option value="1">1 person</option>
+                                    <option value="2" selected>2 people</option>
+                                    <option value="3">3 people</option>
+                                    <option value="4">4 people</option>
+                                    <option value="5">5+ people</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Emergency Contact Name *</label>
+                                <input type="text" id="emergencyContactName" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Emergency Contact Phone *</label>
+                                <input type="tel" id="emergencyContactPhone" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Relationship</label>
+                                <input type="text" id="emergencyContactRelation" placeholder="e.g., Spouse, Parent">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Special Requests or Notes</label>
+                            <textarea id="specialRequests" rows="3" placeholder="Any special requirements or questions..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep()">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="validateStep2()">
+                                Next: Review <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Step 3: Review -->
+                <div class="step-content" id="step3-content">
+                    <h3>Step 3: Review Your Request</h3>
+                    
+                    <div class="request-summary">
+                        <h4>Request Summary</h4>
+                        <div id="reviewSummary">
+                            <!-- Review summary will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div class="contract-terms">
+                        <h4>Terms and Conditions</h4>
+                        <p><strong>1. Rental Agreement:</strong> This request constitutes an application for tenancy and is subject to approval by the landlord.</p>
+                        <p><strong>2. Security Deposit:</strong> Upon approval, a security deposit equivalent to two months' rent is required.</p>
+                        <p><strong>3. Advance Payment:</strong> One month's advance rent is required upon signing the contract.</p>
+                        <p><strong>4. Contract Duration:</strong> Minimum contract period is 6 months.</p>
+                        <p><strong>5. Utilities:</strong> Tenants are responsible for their own utility bills (electricity, water, internet).</p>
+                        <p><strong>6. Maintenance:</strong> Minor maintenance is the tenant's responsibility; major repairs should be reported to management.</p>
+                        <p><strong>7. Termination:</strong> Early termination requires 30 days notice and may incur penalties.</p>
+                        <p><strong>8. Rules:</strong> Tenants must comply with all building rules and regulations.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="agreeTerms" required> 
+                            I have read and agree to the terms and conditions above *
+                        </label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="validateStep3()">
+                            Submit Request <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Submit -->
+                <div class="step-content" id="step4-content">
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="width: 80px; height: 80px; background: #27ae60; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                            <i class="fas fa-check fa-2x" style="color: white;"></i>
+                        </div>
+                        <h3>Request Submitted Successfully!</h3>
+                        <p>Your rental request has been submitted for review.</p>
+                        
+                        <div id="submissionDetails" style="background: #f8f9fa; padding: 20px; border-radius: 8px; max-width: 500px; margin: 30px auto;">
+                            <!-- Submission details will be loaded here -->
+                        </div>
+                        
+                        <p>You will be notified via email once your request is processed.</p>
+                        <p><strong>Request ID:</strong> <span id="requestId" style="font-family: monospace;"></span></p>
+                        
+                        <div class="form-actions" style="margin-top: 30px;">
+                            <button class="btn btn-primary" onclick="window.location.href='tenant-dashboard.html'">
+                                <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.location.href='tenant-room-list.html'">
+                                <i class="fas fa-home"></i> Browse More Rooms
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/rooms.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('tenant')) {
+            window.location.href = '../tenant-login.html';
+        }
+
+        let selectedRoomId = null;
+        let currentStep = 1;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tenant = authSystem.getCurrentUser();
+            if (tenant) {
+                document.getElementById('tenantName').textContent = tenant.fullName;
+                document.getElementById('tenantInitial').textContent = tenant.fullName.charAt(0);
+                
+                // Set default emergency contact from tenant profile
+                if (tenant.emergencyContact) {
+                    document.getElementById('emergencyContactName').value = tenant.emergencyContact.split('(')[0].trim();
+                }
+                document.getElementById('emergencyContactPhone').value = tenant.phone || '';
+            }
+            
+            // Set default move-in date to 7 days from now
+            const defaultMoveIn = new Date();
+            defaultMoveIn.setDate(defaultMoveIn.getDate() + 7);
+            document.getElementById('moveInDate').valueAsDate = defaultMoveIn;
+            
+            loadAvailableRooms();
+        });
+
+        function loadAvailableRooms() {
+            const roomsGrid = document.getElementById('availableRoomsGrid');
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const availableRooms = rooms.filter(room => room.status === 'available');
+            
+            if (availableRooms.length === 0) {
+                roomsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-home fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                        <h3>No Rooms Available</h3>
+                        <p>All rooms are currently occupied. Please check back later.</p>
+                        <a href="tenant-room-list.html" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Check Room List
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            roomsGrid.innerHTML = '';
+            
+            availableRooms.forEach(room => {
+                const roomOption = document.createElement('div');
+                roomOption.className = 'room-option';
+                roomOption.onclick = () => selectRoom(room.id, roomOption);
+                
+                roomOption.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h4 style="margin: 0 0 5px 0;">Room ${room.roomNumber}</h4>
+                            <p style="margin: 0; color: #666; font-size: 14px;">${room.type} • Floor ${room.floor}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: bold; color: #2c3e50;">₱${room.price.toLocaleString()}/month</div>
+                            <span style="background: #27ae60; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-top: 5px; display: inline-block;">
+                                Available
+                            </span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <p style="margin: 5px 0; font-size: 13px; color: #666;">
+                            <i class="fas fa-ruler-combined"></i> ${room.size || 'Size not specified'}
+                        </p>
+                        ${room.amenities ? `
+                            <div style="display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px;">
+                                ${Array.isArray(room.amenities) ? 
+                                    room.amenities.slice(0, 2).map(a => `
+                                        <span style="background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 10px; font-size: 11px;">${a}</span>
+                                    `).join('') : ''}
+                                ${room.amenities && room.amenities.length > 2 ? 
+                                    `<span style="font-size: 11px; color: #666;">+${room.amenities.length - 2} more</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                roomsGrid.appendChild(roomOption);
+            });
+        }
+
+        function selectRoom(roomId, roomElement) {
+            selectedRoomId = roomId;
+            
+            // Remove selected class from all options
+            document.querySelectorAll('.room-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            roomElement.classList.add('selected');
+            
+            // Enable next button
+            document.getElementById('nextStep1').disabled = false;
+            
+            // Update room summary
+            updateRoomSummary();
+        }
+
+        function updateRoomSummary() {
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const room = rooms.find(r => r.id === selectedRoomId);
+            
+            if (!room) return;
+            
+            const summaryDiv = document.getElementById('roomSummary');
+            summaryDiv.innerHTML = `
+                <h4>Selected Room: ${room.roomNumber}</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><strong>Type:</strong> ${room.type}</div>
+                    <div><strong>Floor:</strong> ${room.floor}</div>
+                    <div><strong>Size:</strong> ${room.size || 'Not specified'}</div>
+                    <div><strong>Monthly Rent:</strong> ₱${room.price.toLocaleString()}</div>
+                </div>
+                ${room.amenities && room.amenities.length > 0 ? `
+                    <div style="margin-top: 10px;">
+                        <strong>Amenities:</strong>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                            ${Array.isArray(room.amenities) ? 
+                                room.amenities.map(a => `
+                                    <span style="background: #e3f2fd; color: #1976d2; padding: 3px 8px; border-radius: 10px; font-size: 12px;">${a}</span>
+                                `).join('') : ''}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function updateReviewSummary() {
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const room = rooms.find(r => r.id === selectedRoomId);
+            const tenant = authSystem.getCurrentUser();
+            
+            if (!room || !tenant) return;
+            
+            const moveInDate = document.getElementById('moveInDate').value;
+            const duration = document.getElementById('contractDuration').value;
+            const occupants = document.getElementById('occupants').value;
+            const emergencyName = document.getElementById('emergencyContactName').value;
+            const emergencyPhone = document.getElementById('emergencyContactPhone').value;
+            const emergencyRelation = document.getElementById('emergencyContactRelation').value;
+            const specialRequests = document.getElementById('specialRequests').value;
+            
+            const summaryDiv = document.getElementById('reviewSummary');
+            summaryDiv.innerHTML = `
+                <div class="summary-item">
+                    <span><strong>Tenant:</strong></span>
+                    <span>${tenant.fullName}</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Room:</strong></span>
+                    <span>Room ${room.roomNumber} (${room.type})</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Monthly Rent:</strong></span>
+                    <span>₱${room.price.toLocaleString()}</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Move-in Date:</strong></span>
+                    <span>${new Date(moveInDate).toLocaleDateString()}</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Contract Duration:</strong></span>
+                    <span>${duration} months</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Number of Occupants:</strong></span>
+                    <span>${occupants}</span>
+                </div>
+                <div class="summary-item">
+                    <span><strong>Emergency Contact:</strong></span>
+                    <span>${emergencyName} (${emergencyPhone})${emergencyRelation ? ' - ' + emergencyRelation : ''}</span>
+                </div>
+                ${specialRequests ? `
+                    <div class="summary-item">
+                        <span><strong>Special Requests:</strong></span>
+                        <span>${specialRequests}</span>
+                    </div>
+                ` : ''}
+                <hr style="margin: 15px 0;">
+                <div class="summary-item" style="font-size: 1.1rem;">
+                    <span><strong>Security Deposit (2 months):</strong></span>
+                    <span>₱${(room.price * 2).toLocaleString()}</span>
+                </div>
+                <div class="summary-item" style="font-size: 1.1rem;">
+                    <span><strong>Advance Payment (1 month):</strong></span>
+                    <span>₱${room.price.toLocaleString()}</span>
+                </div>
+                <div class="summary-item" style="font-size: 1.2rem; font-weight: bold; color: #2c3e50;">
+                    <span><strong>Total Initial Payment:</strong></span>
+                    <span>₱${(room.price * 3).toLocaleString()}</span>
+                </div>
+            `;
+        }
+
+        function validateStep2() {
+            const form = document.getElementById('rentalDetailsForm');
+            
+            if (!selectedRoomId) {
+                RentariumUtils.showNotification('Please select a room first', 'error');
+                return;
+            }
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Validate move-in date is not in the past
+            const moveInDate = new Date(document.getElementById('moveInDate').value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (moveInDate < today) {
+                RentariumUtils.showNotification('Move-in date cannot be in the past', 'error');
+                return;
+            }
+            
+            updateReviewSummary();
+            nextStep(3);
+        }
+
+        function validateStep3() {
+            if (!document.getElementById('agreeTerms').checked) {
+                RentariumUtils.showNotification('You must agree to the terms and conditions', 'error');
+                return;
+            }
+            
+            submitRequest();
+        }
+
+        function nextStep(step) {
+            // Hide all step contents
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected step content
+            document.getElementById(`step${step}-content`).classList.add('active');
+            
+            // Update stepper
+            document.querySelectorAll('.step').forEach((stepEl, index) => {
+                stepEl.classList.remove('active', 'completed');
+                if (index + 1 < step) {
+                    stepEl.classList.add('completed');
+                } else if (index + 1 === step) {
+                    stepEl.classList.add('active');
+                }
+            });
+            
+            currentStep = step;
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                nextStep(currentStep - 1);
+            }
+        }
+
+        function submitRequest() {
+            const tenant = authSystem.getCurrentUser();
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const room = rooms.find(r => r.id === selectedRoomId);
+            
+            if (!tenant || !room) {
+                RentariumUtils.showNotification('Error submitting request', 'error');
+                return;
+            }
+            
+            // Check if tenant already has a pending request for this room
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const existingRequest = requests.find(r => 
+                r.tenantId === tenant.id && 
+                r.roomId === selectedRoomId && 
+                r.status === 'pending'
+            );
+            
+            if (existingRequest) {
+                RentariumUtils.showNotification('You already have a pending request for this room', 'error');
+                return;
+            }
+            
+            // Generate request ID
+            const requestId = 'REQ' + Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            // Save rental request
+            const newRequest = {
+                id: requestId,
+                tenantId: tenant.id,
+                tenantName: tenant.fullName,
+                tenantEmail: tenant.email,
+                tenantPhone: tenant.phone,
+                roomId: room.id,
+                roomNumber: room.roomNumber,
+                roomType: room.type,
+                monthlyRent: room.price,
+                moveInDate: document.getElementById('moveInDate').value,
+                contractDuration: document.getElementById('contractDuration').value,
+                occupants: document.getElementById('occupants').value,
+                emergencyContact: {
+                    name: document.getElementById('emergencyContactName').value,
+                    phone: document.getElementById('emergencyContactPhone').value,
+                    relation: document.getElementById('emergencyContactRelation').value || ''
+                },
+                notes: document.getElementById('specialRequests').value,
+                requestDate: new Date().toISOString(),
+                status: 'pending',
+                securityDeposit: room.price * 2,
+                advancePayment: room.price,
+                totalInitialPayment: room.price * 3
+            };
+            
+            requests.push(newRequest);
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            
+            // Display submission details
+            document.getElementById('requestId').textContent = requestId;
+            
+            const submissionDiv = document.getElementById('submissionDetails');
+            submissionDiv.innerHTML = `
+                <div style="text-align: left;">
+                    <p><strong>Request ID:</strong> ${requestId}</p>
+                    <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>Status:</strong> <span style="background: #fff3cd; color: #856404; padding: 3px 10px; border-radius: 12px; font-size: 12px;">Pending Review</span></p>
+                    <p><strong>Room:</strong> ${room.roomNumber} (${room.type})</p>
+                    <p><strong>Monthly Rent:</strong> ₱${room.price.toLocaleString()}</p>
+                    <p><strong>Expected Response:</strong> Within 2-3 business days</p>
+                </div>
+            `;
+            
+            // Go to step 4
+            nextStep(4);
+            
+            RentariumUtils.showNotification('Rental request submitted successfully!', 'success');
+        }
+    </script>
+</body>
+</html>

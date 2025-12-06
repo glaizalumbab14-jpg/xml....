@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Tenant - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html" class="active"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Create New Tenant Account</h1>
+                    <p>Create accounts for new tenants</p>
+                </div>
+                <a href="admin-tenant-list.html" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Tenant List
+                </a>
+            </div>
+
+            <div class="content-container">
+                <div class="form-container">
+                    <form id="createTenantForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="fullName"><i class="fas fa-user"></i> Full Name *</label>
+                                <input type="text" id="fullName" name="fullName" required 
+                                       placeholder="Enter tenant's full name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email"><i class="fas fa-envelope"></i> Email Address *</label>
+                                <input type="email" id="email" name="email" required 
+                                       placeholder="Enter email address">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="username"><i class="fas fa-user-tag"></i> Username *</label>
+                                <input type="text" id="username" name="username" required 
+                                       placeholder="Create unique username">
+                                <small class="form-text">Username cannot be changed later</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password"><i class="fas fa-lock"></i> Password *</label>
+                                <input type="password" id="password" name="password" required 
+                                       placeholder="Set initial password">
+                                <small class="form-text">Tenant can change this later</small>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phone"><i class="fas fa-phone"></i> Phone Number *</label>
+                                <input type="tel" id="phone" name="phone" required 
+                                       placeholder="Enter contact number">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="occupation"><i class="fas fa-briefcase"></i> Occupation</label>
+                                <input type="text" id="occupation" name="occupation" 
+                                       placeholder="Enter occupation">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="emergencyContact"><i class="fas fa-phone-alt"></i> Emergency Contact</label>
+                                <input type="text" id="emergencyContact" name="emergencyContact" 
+                                       placeholder="Name & contact number">
+                            </div>
+                            
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes"><i class="fas fa-sticky-note"></i> Additional Notes</label>
+                            <textarea id="notes" name="notes" rows="3" 
+                                      placeholder="Any additional information about the tenant"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Create Tenant Account
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Reset Form
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="tenant-preview" id="tenantPreview" style="margin-top: 40px; display: none;">
+                        <h3><i class="fas fa-eye"></i> Account Preview</h3>
+                        <div class="preview-card">
+                            <div class="preview-content">
+                                <div><strong>Username:</strong> <span id="previewUsername"></span></div>
+                                <div><strong>Password:</strong> <span id="previewPassword"></span></div>
+                                <div><strong>Login URL:</strong> <span id="previewLoginUrl"></span></div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Please provide these credentials to the tenant
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        // Load available rooms for assignment
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+            }
+
+            // Populate available rooms dropdown
+            const roomSelect = document.getElementById('roomAssignment');
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const availableRooms = rooms.filter(room => room.status === 'available');
+            
+            availableRooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = `Room ${room.roomNumber} - ${room.type} (₱${room.price}/month)`;
+                roomSelect.appendChild(option);
+            });
+        });
+
+        // Handle form submission
+        document.getElementById('createTenantForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                email: document.getElementById('email').value,
+                fullName: document.getElementById('fullName').value,
+                phone: document.getElementById('phone').value,
+                emergencyContact: document.getElementById('emergencyContact').value,
+                occupation: document.getElementById('occupation').value,
+                notes: document.getElementById('notes').value,
+                roomId: document.getElementById('roomAssignment').value
+            };
+
+            // Validate email
+            if (!RentariumUtils.validateEmail(formData.email)) {
+                RentariumUtils.showNotification('Please enter a valid email address', 'error');
+                return;
+            }
+
+            // Validate phone
+            if (!RentariumUtils.validatePhone(formData.phone)) {
+                RentariumUtils.showNotification('Please enter a valid phone number', 'error');
+                return;
+            }
+
+            // Create tenant account
+            const result = authSystem.createTenantAccount(formData);
+            
+            if (result.success) {
+                // If room is assigned, update room status
+                if (formData.roomId) {
+                    const roomManager = window.roomManager || new RoomManager();
+                    roomManager.assignTenantToRoom(formData.roomId, result.tenant.id);
+                    
+                    // Also create a rental request record
+                    const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+                    requests.push({
+                        id: 'REQ' + Date.now(),
+                        tenantId: result.tenant.id,
+                        tenantName: result.tenant.fullName,
+                        roomId: formData.roomId,
+                        requestDate: new Date().toISOString(),
+                        moveInDate: new Date().toISOString().split('T')[0],
+                        status: 'approved',
+                        approvedBy: authSystem.getCurrentUser().username,
+                        approvedDate: new Date().toISOString(),
+                        notes: 'Account created by admin with room assignment'
+                    });
+                    localStorage.setItem('rental_requests', JSON.stringify(requests));
+                }
+
+                // Show account preview
+                document.getElementById('previewUsername').textContent = formData.username;
+                document.getElementById('previewPassword').textContent = formData.password;
+                document.getElementById('previewLoginUrl').textContent = 
+                    `${window.location.origin}/tenant-login.html`;
+                document.getElementById('tenantPreview').style.display = 'block';
+
+                RentariumUtils.showNotification('Tenant account created successfully!', 'success');
+                
+                // Reset form after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('createTenantForm').reset();
+                    document.getElementById('tenantPreview').style.display = 'none';
+                }, 5000);
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        });
+
+        // Real-time form validation
+        document.getElementById('username').addEventListener('input', function() {
+            const username = this.value;
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const existing = tenants.find(t => t.username === username);
+            
+            if (existing) {
+                this.style.borderColor = 'var(--accent-color)';
+                RentariumUtils.showNotification('Username already exists', 'warning');
+            } else {
+                this.style.borderColor = '';
+            }
+        });
+    </script>
+    <script src="../js/rooms.js"></script>
+</body>
+</html>

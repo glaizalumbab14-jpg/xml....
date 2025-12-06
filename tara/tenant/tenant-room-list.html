@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Rooms - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .current-room-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .current-room-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .current-room-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .current-room-details h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        .current-room-details p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        .current-room-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .room-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .room-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .room-card:hover {
+            transform: translateY(-5px);
+        }
+        .room-card-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .room-card-body {
+            padding: 20px;
+        }
+        .room-amenities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .amenity-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .room-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .status-available {
+            background: #27ae60;
+        }
+        .status-occupied {
+            background: #e74c3c;
+        }
+        .status-maintenance {
+            background: #f39c12;
+        }
+        .your-room-badge {
+            background: #3498db;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .no-room-message {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="tenantInitial">T</div>
+                    <div>
+                        <p id="tenantName">Tenant</p>
+                        <small id="tenantRoom">Room: -</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="tenant-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="tenant-room-list.html" class="active"><i class="fas fa-home"></i> Browse Rooms</a></li>
+                <li><a href="tenant-rental-request.html"><i class="fas fa-file-contract"></i> Rental Request</a></li>
+                <li><a href="tenant-payment.html"><i class="fas fa-credit-card"></i> Make Payment</a></li>
+                <li><a href="tenant-payment-history.html"><i class="fas fa-history"></i> Payment History</a></li>
+                <li><a href="tenant-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Available Rooms</h1>
+                    <p id="pageSubtitle">Browse and apply for available rooms</p>
+                </div>
+                <div class="current-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="currentDate"></span>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <!-- Current Room Banner -->
+                <div id="currentRoomBanner" class="current-room-banner" style="display: none;">
+                    <div class="current-room-info">
+                        <div class="current-room-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <div class="current-room-details">
+                            <h3>Your Current Room</h3>
+                            <p id="currentRoomInfo">Loading room information...</p>
+                        </div>
+                    </div>
+                    <div class="current-room-actions">
+                        <button class="btn btn-light" onclick="viewCurrentRoomDetails()">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn btn-light" onclick="makePayment()">
+                            <i class="fas fa-credit-card"></i> Make Payment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- No Room Message -->
+                <div id="noRoomMessage" class="no-room-message" style="display: none;">
+                    <i class="fas fa-home fa-2x" style="color: #ddd; margin-bottom: 10px;"></i>
+                    <h3>No Room Assigned</h3>
+                    <p>You don't have a room assigned yet. Browse available rooms below and submit a rental request.</p>
+                </div>
+
+                <!-- Room Filters -->
+                <div class="room-filters">
+                    <h3><i class="fas fa-filter"></i> Filter Rooms</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Room Type</label>
+                            <select id="typeFilter" class="form-control" onchange="filterRooms()">
+                                <option value="">All Types</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedrooms">2 Bedrooms</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Floor</label>
+                            <select id="floorFilter" class="form-control" onchange="filterRooms()">
+                                <option value="">All Floors</option>
+                                <option value="Ground Floor">Ground Floor</option>
+                                <option value="1st Floor">1st Floor</option>
+                                <option value="2nd Floor">2nd Floor</option>
+                                <option value="3rd Floor">3rd Floor</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Price Range</label>
+                            <input type="range" id="priceFilter" min="0" max="50000" step="1000" 
+                                   class="form-control" onchange="updatePriceLabel()">
+                            <div>Up to: ₱<span id="priceLabel">50000</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rooms Grid -->
+                <div id="roomsContainer" class="room-grid">
+                    <!-- Rooms will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Room Details Modal -->
+    <div id="roomDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Room Details</h3>
+                <button class="close-modal" onclick="closeRoomDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="roomDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/rooms.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('tenant')) {
+            window.location.href = '../tenant-login.html';
+        }
+
+        const roomManager = window.roomManager || new RoomManager();
+        let currentRoom = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tenant = authSystem.getCurrentUser();
+            if (tenant) {
+                document.getElementById('tenantName').textContent = tenant.fullName;
+                document.getElementById('tenantInitial').textContent = tenant.fullName.charAt(0);
+                
+                // Set current date
+                const now = new Date();
+                document.getElementById('currentDate').textContent = 
+                    now.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+
+                // Load tenant's current room information
+                loadTenantRoomInfo();
+                
+                // Load available rooms
+                loadAvailableRooms();
+            }
+        });
+
+        function loadTenantRoomInfo() {
+            const tenant = authSystem.getCurrentUser();
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            
+            // Find the current tenant in tenants array
+            const currentTenant = tenants.find(t => t.id === tenant.id);
+            
+            if (currentTenant && currentTenant.roomId) {
+                // Tenant has a room assigned
+                currentRoom = rooms.find(r => r.id === currentTenant.roomId);
+                
+                if (currentRoom) {
+                    // Update sidebar
+                    document.getElementById('tenantRoom').textContent = `Room: ${currentRoom.roomNumber}`;
+                    
+                    // Update page subtitle
+                    document.getElementById('pageSubtitle').textContent = 
+                        `You are currently in Room ${currentRoom.roomNumber}. Browse other available rooms.`;
+                    
+                    // Show current room banner
+                    document.getElementById('currentRoomBanner').style.display = 'flex';
+                    document.getElementById('currentRoomInfo').innerHTML = `
+                        <strong>Room ${currentRoom.roomNumber}</strong> • ${currentRoom.type} • Floor ${currentRoom.floor}<br>
+                        Monthly Rent: <strong>₱${currentRoom.price.toLocaleString()}</strong> • 
+                        Occupied Since: <strong>${currentTenant.moveInDate ? new Date(currentTenant.moveInDate).toLocaleDateString() : 'N/A'}</strong>
+                    `;
+                    
+                    // Hide no room message
+                    document.getElementById('noRoomMessage').style.display = 'none';
+                } else {
+                    // Room not found
+                    showNoRoomMessage();
+                }
+            } else {
+                // No room assigned
+                showNoRoomMessage();
+            }
+        }
+
+        function showNoRoomMessage() {
+            document.getElementById('tenantRoom').textContent = 'Room: Not Assigned';
+            document.getElementById('pageSubtitle').textContent = 'Browse and apply for available rooms';
+            document.getElementById('currentRoomBanner').style.display = 'none';
+            document.getElementById('noRoomMessage').style.display = 'block';
+        }
+
+        function loadAvailableRooms() {
+            const rooms = roomManager.getAvailableRooms();
+            
+            // Filter out the tenant's current room if they have one
+            let availableRooms = rooms;
+            if (currentRoom) {
+                availableRooms = rooms.filter(room => room.id !== currentRoom.id);
+                
+                // If tenant's room is "available" (shouldn't happen but just in case)
+                if (rooms.find(r => r.id === currentRoom.id)) {
+                    // Show a note
+                    document.getElementById('pageSubtitle').textContent = 
+                        `You are in Room ${currentRoom.roomNumber}. Below are other available rooms.`;
+                }
+            }
+            
+            displayRooms(availableRooms);
+            initializePriceFilter(availableRooms);
+        }
+
+        function displayRooms(rooms) {
+            const roomsContainer = document.getElementById('roomsContainer');
+            
+            if (rooms.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-home fa-3x" style="color: #ddd;"></i>
+                        <h3>No Available Rooms</h3>
+                        <p>There are currently no other rooms available for rent.</p>
+                        ${currentRoom ? 
+                            `<p>You are currently in Room ${currentRoom.roomNumber}.</p>` : 
+                            '<p>Please check back later or contact the landlord.</p>'
+                        }
+                    </div>
+                `;
+                return;
+            }
+
+            roomsContainer.innerHTML = '';
+            
+            rooms.forEach(room => {
+                const isCurrentRoom = currentRoom && room.id === currentRoom.id;
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                
+                if (isCurrentRoom) {
+                    roomCard.style.boxShadow = '0 3px 15px rgba(52, 152, 219, 0.3)';
+                    roomCard.style.border = '2px solid #3498db';
+                }
+                
+                roomCard.innerHTML = `
+                    <div class="room-card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">
+                                    Room ${room.roomNumber}
+                                    ${isCurrentRoom ? '<span class="your-room-badge">YOUR ROOM</span>' : ''}
+                                </h3>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">${room.type} • ${room.floor}</p>
+                            </div>
+                            <span class="status-badge ${room.status === 'available' ? 'status-available' : 
+                                                       room.status === 'occupied' ? 'status-occupied' : 
+                                                       'status-maintenance'}">
+                                ${room.status}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="room-card-body">
+                        <div style="font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin-bottom: 10px;">
+                            ₱${room.price.toLocaleString()}/month
+                        </div>
+                        <div style="color: #666; margin-bottom: 10px;">
+                            <i class="fas fa-ruler-combined"></i> ${room.size || 'Size not specified'}
+                        </div>
+                        ${room.description ? `<p style="color: #666; margin-bottom: 15px;">${room.description}</p>` : ''}
+                        
+                        ${room.amenities && room.amenities.length > 0 ? `
+                            <div>
+                                <strong>Amenities:</strong>
+                                <div class="room-amenities">
+                                    ${room.amenities.map(amenity => `
+                                        <span class="amenity-tag">${amenity}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="room-actions">
+                            <button class="btn btn-primary" onclick="viewRoomDetails('${room.id}')">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                            ${!isCurrentRoom ? `
+                                <button class="btn btn-success" onclick="requestRoom('${room.id}')">
+                                    <i class="fas fa-file-contract"></i> Request Room
+                                </button>
+                            ` : `
+                                <button class="btn btn-secondary" onclick="viewCurrentRoomDetails()">
+                                    <i class="fas fa-info-circle"></i> Your Room
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+                roomsContainer.appendChild(roomCard);
+            });
+        }
+
+        function viewCurrentRoomDetails() {
+            if (currentRoom) {
+                viewRoomDetails(currentRoom.id);
+            }
+        }
+
+        function initializePriceFilter(rooms) {
+            const priceFilter = document.getElementById('priceFilter');
+            const priceLabel = document.getElementById('priceLabel');
+            
+            // Set max price based on available rooms
+            const maxPrice = rooms.length > 0 
+                ? Math.max(...rooms.map(r => r.price))
+                : 50000;
+            
+            priceFilter.max = Math.max(50000, maxPrice);
+            priceFilter.value = priceFilter.max;
+            priceLabel.textContent = priceFilter.value.toLocaleString();
+        }
+
+        function updatePriceLabel() {
+            const priceFilter = document.getElementById('priceFilter');
+            const priceLabel = document.getElementById('priceLabel');
+            priceLabel.textContent = priceFilter.value.toLocaleString();
+            filterRooms();
+        }
+
+        function filterRooms() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const floorFilter = document.getElementById('floorFilter').value;
+            const maxPrice = parseInt(document.getElementById('priceFilter').value);
+            
+            let rooms = roomManager.getAvailableRooms();
+            
+            // Filter out current room
+            if (currentRoom) {
+                rooms = rooms.filter(room => room.id !== currentRoom.id);
+            }
+            
+            rooms = rooms.filter(room => {
+                if (typeFilter && room.type !== typeFilter) return false;
+                if (floorFilter && room.floor !== floorFilter) return false;
+                if (room.price > maxPrice) return false;
+                return true;
+            });
+            
+            displayRooms(rooms);
+        }
+
+        function viewRoomDetails(roomId) {
+            const room = roomManager.getRoomById(roomId);
+            if (!room) return;
+            
+            // Check if this is the tenant's current room
+            const tenant = authSystem.getCurrentUser();
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const currentTenant = tenants.find(t => t.id === tenant.id);
+            const isCurrentRoom = currentTenant && currentTenant.roomId === roomId;
+            
+            const detailsContent = `
+                <div style="padding: 20px;">
+                    ${isCurrentRoom ? `
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3498db;">
+                            <h4 style="margin: 0; color: #1976d2;">
+                                <i class="fas fa-home"></i> This is Your Current Room
+                            </h4>
+                            <p style="margin: 5px 0 0; color: #1976d2;">
+                                You are currently occupying this room. Below are the details of your rental.
+                            </p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h4 style="margin-bottom: 10px;">Room Information</h4>
+                            <p><strong>Room Number:</strong> ${room.roomNumber}</p>
+                            <p><strong>Type:</strong> ${room.type}</p>
+                            <p><strong>Floor:</strong> ${room.floor}</p>
+                            <p><strong>Size:</strong> ${room.size || 'Not specified'}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="status-badge ${room.status === 'available' ? 'status-available' : 
+                                                          room.status === 'occupied' ? 'status-occupied' : 
+                                                          'status-maintenance'}">
+                                    ${room.status}
+                                </span>
+                            </p>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 10px;">Pricing</h4>
+                            <p><strong>Monthly Rent:</strong> ₱${room.price.toLocaleString()}</p>
+                            <p><strong>Security Deposit:</strong> ₱${(room.price * 2).toLocaleString()} (2 months)</p>
+                            <p><strong>Advance Payment:</strong> ₱${room.price.toLocaleString()} (1 month)</p>
+                            <p><strong>Total Move-in Cost:</strong> ₱${(room.price * 3).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    
+                    ${room.amenities && room.amenities.length > 0 ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4>Amenities</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                                ${room.amenities.map(amenity => `
+                                    <span class="amenity-tag">${amenity}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${room.description ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4>Description</h4>
+                            <p>${room.description}</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${isCurrentRoom && currentTenant.moveInDate ? `
+                        <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                            <h4>Your Rental Information</h4>
+                            <p><strong>Move-in Date:</strong> ${new Date(currentTenant.moveInDate).toLocaleDateString()}</p>
+                            <p><strong>Room Status:</strong> Occupied</p>
+                            <p><strong>Last Payment:</strong> ${currentTenant.lastPaymentDate ? new Date(currentTenant.lastPaymentDate).toLocaleDateString() : 'No payments yet'}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        ${!isCurrentRoom ? `
+                            <button class="btn btn-primary" onclick="requestRoom('${room.id}'); closeRoomDetailsModal()">
+                                <i class="fas fa-file-contract"></i> Request This Room
+                            </button>
+                        ` : `
+                            <button class="btn btn-primary" onclick="window.location.href='tenant-payment.html'">
+                                <i class="fas fa-credit-card"></i> Make Payment
+                            </button>
+                        `}
+                        <button class="btn btn-secondary" onclick="closeRoomDetailsModal()">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('roomDetailsContent').innerHTML = detailsContent;
+            document.getElementById('roomDetailsModal').classList.add('active');
+        }
+
+        function closeRoomDetailsModal() {
+            document.getElementById('roomDetailsModal').classList.remove('active');
+        }
+
+        function requestRoom(roomId) {
+            const room = roomManager.getRoomById(roomId);
+            if (!room) return;
+            
+            const tenant = authSystem.getCurrentUser();
+            
+            // Check if tenant already has a room
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const currentTenant = tenants.find(t => t.id === tenant.id);
+            
+            if (currentTenant && currentTenant.roomId) {
+                RentariumUtils.showNotification('You already have a room assigned. Please contact the landlord if you want to change rooms.', 'warning');
+                return;
+            }
+            
+            // Check if tenant already has pending requests
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const pendingRequest = requests.find(r => 
+                r.tenantId === tenant.id && r.status === 'pending'
+            );
+            
+            if (pendingRequest) {
+                RentariumUtils.showNotification('You already have a pending rental request. Please wait for it to be processed.', 'warning');
+                return;
+            }
+            
+            // Create rental request
+            const newRequest = {
+                id: 'REQ' + Date.now() + Math.random().toString(36).substr(2, 5),
+                tenantId: tenant.id,
+                tenantName: tenant.fullName,
+                roomId: roomId,
+                roomNumber: room.roomNumber,
+                requestDate: new Date().toISOString(),
+                moveInDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+                status: 'pending',
+                notes: '',
+                monthlyRent: room.price,
+                securityDeposit: room.price * 2,
+                advancePayment: room.price
+            };
+            
+            requests.push(newRequest);
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            
+            RentariumUtils.showNotification('Rental request submitted successfully! The landlord will review your application.', 'success');
+            
+            // Redirect to rental request page
+            setTimeout(() => {
+                window.location.href = 'tenant-rental-request.html';
+            }, 1000);
+        }
+
+        function makePayment() {
+            window.location.href = 'tenant-payment.html';
+        }
+    </script>
+</body>
+</html>

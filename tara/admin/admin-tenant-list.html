@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant List - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tenant-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tenant-info {
+            flex: 1;
+        }
+        .tenant-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 20px;
+        }
+        .tenant-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .tenant-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #95a5a6;
+        }
+        .tenant-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .view-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .view-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .tenant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .grid-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .grid-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html" class="active"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Tenant List</h1>
+                    <p>Manage all registered tenants</p>
+                </div>
+                <a href="admin-create-tenant.html" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Add New Tenant
+                </a>
+            </div>
+
+            <div class="content-container">
+                <!-- Statistics -->
+                <div class="summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #2c3e50;">Total Tenants</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="totalTenants">0</div>
+                    </div>
+                    <div style="background: #d4edda; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #155724;">Active</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="activeTenants">0</div>
+                    </div>
+                    <div style="background: #f8d7da; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #721c24;">Inactive</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="inactiveTenants">0</div>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #1565c0;">With Rooms</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="tenantsWithRooms">0</div>
+                    </div>
+                </div>
+
+                <!-- Search and View Controls -->
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="tenantSearch" placeholder="Search tenants by name, email, or room number..." 
+                           onkeyup="searchTenants()">
+                </div>
+
+                <div class="view-switch">
+                    <button class="view-btn active" onclick="setView('list')">
+                        <i class="fas fa-list"></i> List View
+                    </button>
+                    <button class="view-btn" onclick="setView('grid')">
+                        <i class="fas fa-th-large"></i> Grid View
+                    </button>
+                    <button class="view-btn" onclick="setView('table')">
+                        <i class="fas fa-table"></i> Table View
+                    </button>
+                </div>
+
+                <!-- Tenants Container -->
+                <div id="tenantsContainer">
+                    <!-- Tenants will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tenant Details Modal -->
+    <div id="tenantDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Tenant Details</h3>
+                <button class="close-modal" onclick="closeTenantDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="tenantDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Tenant Modal -->
+    <div id="editTenantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Tenant</h3>
+                <button class="close-modal" onclick="closeEditTenantModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="editTenantContent">
+                <!-- Edit form will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        let currentView = 'list';
+        let currentTenantId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+            }
+            loadTenants();
+        });
+
+        function loadTenants() {
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            
+            // Update statistics
+            const totalTenants = tenants.length;
+            const activeTenants = tenants.filter(t => t.status === 'active').length;
+            const inactiveTenants = tenants.filter(t => t.status === 'inactive').length;
+            const tenantsWithRooms = tenants.filter(t => t.roomId).length;
+            
+            document.getElementById('totalTenants').textContent = totalTenants;
+            document.getElementById('activeTenants').textContent = activeTenants;
+            document.getElementById('inactiveTenants').textContent = inactiveTenants;
+            document.getElementById('tenantsWithRooms').textContent = tenantsWithRooms;
+            
+            // Display tenants based on current view
+            displayTenants(tenants, rooms, payments);
+        }
+
+        function displayTenants(tenants, rooms, payments) {
+            const container = document.getElementById('tenantsContainer');
+            
+            if (tenants.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                        <h3>No Tenants Found</h3>
+                        <p>Create your first tenant account to get started.</p>
+                        <a href="admin-create-tenant.html" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Create Tenant
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (currentView === 'list') {
+                displayListView(tenants, rooms, payments);
+            } else if (currentView === 'grid') {
+                displayGridView(tenants, rooms);
+            } else {
+                displayTableView(tenants, rooms, payments);
+            }
+        }
+
+        function displayListView(tenants, rooms, payments) {
+            const container = document.getElementById('tenantsContainer');
+            container.innerHTML = '';
+            
+            tenants.forEach(tenant => {
+                const tenantRoom = rooms.find(r => r.id === tenant.roomId);
+                const tenantPayments = payments.filter(p => p.tenantId === tenant.id);
+                const lastPayment = tenantPayments.length > 0 
+                    ? tenantPayments[tenantPayments.length - 1]
+                    : null;
+                
+                const tenantCard = document.createElement('div');
+                tenantCard.className = 'tenant-card';
+                
+                tenantCard.innerHTML = `
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <div class="tenant-avatar">
+                            ${tenant.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="tenant-info">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="margin: 0; font-size: 1.2rem;">${tenant.fullName}</h3>
+                                    <p style="margin: 5px 0 0 0; color: #666;">
+                                        <i class="fas fa-envelope"></i> ${tenant.email}
+                                        <span style="margin: 0 10px;">•</span>
+                                        <i class="fas fa-phone"></i> ${tenant.phone}
+                                    </p>
+                                </div>
+                                <span class="tenant-status status-${tenant.status}">
+                                    ${tenant.status.toUpperCase()}
+                                </span>
+                            </div>
+                            
+                            <div class="tenant-details">
+                                <div>
+                                    <strong>Username:</strong> ${tenant.username}
+                                </div>
+                                <div>
+                                    <strong>Room:</strong> ${tenantRoom ? `Room ${tenantRoom.roomNumber}` : 'No Room Assigned'}
+                                </div>
+                                <div>
+                                    <strong>Move-in Date:</strong> ${tenant.moveInDate ? new Date(tenant.moveInDate).toLocaleDateString() : 'Not set'}
+                                </div>
+                                <div>
+                                    <strong>Last Payment:</strong> ${lastPayment ? RentariumUtils.formatCurrency(lastPayment.amount) + ' on ' + new Date(lastPayment.paymentDate).toLocaleDateString() : 'No payments'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tenant-actions">
+                        <button class="btn-action btn-view" onclick="viewTenantDetails('${tenant.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn-action btn-edit" onclick="editTenant('${tenant.id}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        ${tenant.status === 'active' ? `
+                            <button class="btn-action btn-warning" onclick="deactivateTenant('${tenant.id}')">
+                                <i class="fas fa-user-slash"></i> Deactivate
+                            </button>
+                        ` : `
+                            <button class="btn-action btn-success" onclick="activateTenant('${tenant.id}')">
+                                <i class="fas fa-user-check"></i> Activate
+                            </button>
+                        `}
+                    </div>
+                `;
+                
+                container.appendChild(tenantCard);
+            });
+        }
+
+        function displayGridView(tenants, rooms) {
+            const container = document.getElementById('tenantsContainer');
+            container.innerHTML = '';
+            container.className = 'tenant-grid';
+            
+            tenants.forEach(tenant => {
+                const tenantRoom = rooms.find(r => r.id === tenant.roomId);
+                
+                const gridCard = document.createElement('div');
+                gridCard.className = 'grid-card';
+                
+                gridCard.innerHTML = `
+                    <div class="grid-card-header">
+                        <div class="tenant-avatar" style="width: 50px; height: 50px; margin-right: 15px;">
+                            ${tenant.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.1rem;">${tenant.fullName}</h3>
+                            <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">
+                                <span class="tenant-status status-${tenant.status}" style="font-size: 10px;">
+                                    ${tenant.status.toUpperCase()}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <p style="margin: 5px 0;"><i class="fas fa-envelope"></i> ${tenant.email}</p>
+                        <p style="margin: 5px 0;"><i class="fas fa-phone"></i> ${tenant.phone}</p>
+                        <p style="margin: 5px 0;"><i class="fas fa-home"></i> ${tenantRoom ? `Room ${tenantRoom.roomNumber}` : 'No Room'}</p>
+                        <p style="margin: 5px 0;"><i class="fas fa-briefcase"></i> ${tenant.occupation || 'Not specified'}</p>
+                    </div>
+                    
+                    <div class="tenant-actions" style="margin-top: 15px;">
+                        <button class="btn-action btn-view" onclick="viewTenantDetails('${tenant.id}')" style="flex: 1;">
+                            <i class="fas fa-eye"></i> Details
+                        </button>
+                        <button class="btn-action btn-edit" onclick="editTenant('${tenant.id}')" style="flex: 1;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(gridCard);
+            });
+        }
+
+        function displayTableView(tenants, rooms, payments) {
+            const container = document.getElementById('tenantsContainer');
+            container.innerHTML = '';
+            container.className = '';
+            
+            const table = document.createElement('table');
+            table.className = 'data-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Room</th>
+                        <th>Status</th>
+                        <th>Move-in Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tenantsTableBody">
+                </tbody>
+            `;
+            
+            container.appendChild(table);
+            
+            const tableBody = document.getElementById('tenantsTableBody');
+            tenants.forEach(tenant => {
+                const tenantRoom = rooms.find(r => r.id === tenant.roomId);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                  border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                ${tenant.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight: 500;">${tenant.fullName}</div>
+                                <div style="font-size: 12px; color: #666;">@${tenant.username}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${tenant.email}</td>
+                    <td>${tenant.phone}</td>
+                    <td>${tenantRoom ? `Room ${tenantRoom.roomNumber}` : '-'}</td>
+                    <td>
+                        <span class="tenant-status status-${tenant.status}">
+                            ${tenant.status.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>${tenant.moveInDate ? new Date(tenant.moveInDate).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <button class="btn-action btn-view" onclick="viewTenantDetails('${tenant.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-action btn-edit" onclick="editTenant('${tenant.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action ${tenant.status === 'active' ? 'btn-warning' : 'btn-success'}" 
+                                onclick="${tenant.status === 'active' ? 'deactivateTenant' : 'activateTenant'}('${tenant.id}')">
+                            <i class="fas ${tenant.status === 'active' ? 'fa-user-slash' : 'fa-user-check'}"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function setView(view) {
+            currentView = view;
+            
+            // Update active button
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            loadTenants();
+        }
+
+        function searchTenants() {
+            const searchTerm = document.getElementById('tenantSearch').value.toLowerCase();
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            
+            if (!searchTerm) {
+                displayTenants(tenants, rooms, payments);
+                return;
+            }
+            
+            const filteredTenants = tenants.filter(tenant => {
+                return tenant.fullName.toLowerCase().includes(searchTerm) ||
+                       tenant.email.toLowerCase().includes(searchTerm) ||
+                       tenant.username.toLowerCase().includes(searchTerm) ||
+                       tenant.phone.includes(searchTerm);
+            });
+            
+            displayTenants(filteredTenants, rooms, payments);
+        }
+
+        function viewTenantDetails(tenantId) {
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            
+            const tenant = tenants.find(t => t.id === tenantId);
+            if (!tenant) return;
+            
+            const tenantRoom = rooms.find(r => r.id === tenant.roomId);
+            const tenantPayments = payments.filter(p => p.tenantId === tenant.id);
+            const tenantRequests = requests.filter(r => r.tenantId === tenant.id);
+            
+            const totalPaid = tenantPayments.filter(p => p.status === 'paid')
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            const lastPayment = tenantPayments.length > 0 
+                ? tenantPayments[tenantPayments.length - 1]
+                : null;
+            
+            let detailsContent = `
+                <div style="padding: 20px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                        <div class="tenant-avatar" style="width: 80px; height: 80px; font-size: 32px; margin-right: 20px;">
+                            ${tenant.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h2 style="margin: 0 0 5px 0;">${tenant.fullName}</h2>
+                            <p style="margin: 0; color: #666;">
+                                <span class="tenant-status status-${tenant.status}" style="margin-right: 10px;">
+                                    ${tenant.status.toUpperCase()}
+                                </span>
+                                <span>@${tenant.username}</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                        <div>
+                            <h4>Contact Information</h4>
+                            <p><strong>Email:</strong> ${tenant.email}</p>
+                            <p><strong>Phone:</strong> ${tenant.phone}</p>
+                            <p><strong>Emergency Contact:</strong> ${tenant.emergencyContact || 'Not provided'}</p>
+                            <p><strong>Occupation:</strong> ${tenant.occupation || 'Not specified'}</p>
+                        </div>
+                        
+                        <div>
+                            <h4>Room Information</h4>
+                            ${tenantRoom ? `
+                                <p><strong>Room:</strong> ${tenantRoom.roomNumber}</p>
+                                <p><strong>Type:</strong> ${tenantRoom.type}</p>
+                                <p><strong>Floor:</strong> ${tenantRoom.floor}</p>
+                                <p><strong>Rent:</strong> ${RentariumUtils.formatCurrency(tenantRoom.price)}/month</p>
+                                ${tenant.moveInDate ? `<p><strong>Move-in Date:</strong> ${new Date(tenant.moveInDate).toLocaleDateString()}</p>` : ''}
+                            ` : '<p>No room assigned</p>'}
+                        </div>
+                        
+                        <div>
+                            <h4>Payment Summary</h4>
+                            <p><strong>Total Paid:</strong> ${RentariumUtils.formatCurrency(totalPaid)}</p>
+                            <p><strong>Total Payments:</strong> ${tenantPayments.length}</p>
+                            ${lastPayment ? `
+                                <p><strong>Last Payment:</strong> ${RentariumUtils.formatCurrency(lastPayment.amount)} on ${new Date(lastPayment.paymentDate).toLocaleDateString()}</p>
+                            ` : ''}
+                            <p><strong>Account Created:</strong> ${RentariumUtils.formatDate(tenant.createdAt)}</p>
+                        </div>
+                    </div>
+                    
+                    ${tenant.notes ? `
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                            <h4>Notes</h4>
+                            <p>${tenant.notes}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        <button class="btn btn-primary" onclick="editTenant('${tenant.id}'); closeTenantDetailsModal()">
+                            <i class="fas fa-edit"></i> Edit Tenant
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewTenantPayments('${tenant.id}')">
+                            <i class="fas fa-credit-card"></i> View Payments
+                        </button>
+                        <button class="btn btn-secondary" onclick="sendMessageToTenant('${tenant.email}')">
+                            <i class="fas fa-envelope"></i> Send Email
+                        </button>
+                        ${tenant.status === 'active' ? `
+                            <button class="btn btn-warning" onclick="deactivateTenant('${tenant.id}'); closeTenantDetailsModal()">
+                                <i class="fas fa-user-slash"></i> Deactivate
+                            </button>
+                        ` : `
+                            <button class="btn btn-success" onclick="activateTenant('${tenant.id}'); closeTenantDetailsModal()">
+                                <i class="fas fa-user-check"></i> Activate
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('tenantDetailsContent').innerHTML = detailsContent;
+            document.getElementById('tenantDetailsModal').classList.add('active');
+        }
+
+        function closeTenantDetailsModal() {
+            document.getElementById('tenantDetailsModal').classList.remove('active');
+        }
+
+        function editTenant(tenantId) {
+            currentTenantId = tenantId;
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenant = tenants.find(t => t.id === tenantId);
+            
+            if (!tenant) return;
+            
+            const editContent = `
+                <form id="editTenantForm" onsubmit="saveTenantChanges(event)">
+                    <input type="hidden" id="editTenantId" value="${tenant.id}">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="editFullName" value="${tenant.fullName}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="editEmail" value="${tenant.email}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone *</label>
+                            <input type="tel" id="editPhone" value="${tenant.phone}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Occupation</label>
+                            <input type="text" id="editOccupation" value="${tenant.occupation || ''}">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Emergency Contact</label>
+                            <input type="text" id="editEmergencyContact" value="${tenant.emergencyContact || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="editStatus">
+                                <option value="active" ${tenant.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="inactive" ${tenant.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="editNotes" rows="3">${tenant.notes || ''}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Change Password (leave blank to keep current)</label>
+                        <input type="password" id="editPassword" placeholder="Enter new password">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeEditTenantModal()">Cancel</button>
+                    </div>
+                </form>
+            `;
+            
+            document.getElementById('editTenantContent').innerHTML = editContent;
+            document.getElementById('editTenantModal').classList.add('active');
+        }
+
+        function saveTenantChanges(e) {
+            e.preventDefault();
+            
+            const tenantId = document.getElementById('editTenantId').value;
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenantIndex = tenants.findIndex(t => t.id === tenantId);
+            
+            if (tenantIndex === -1) return;
+            
+            // Update tenant information
+            tenants[tenantIndex].fullName = document.getElementById('editFullName').value;
+            tenants[tenantIndex].email = document.getElementById('editEmail').value;
+            tenants[tenantIndex].phone = document.getElementById('editPhone').value;
+            tenants[tenantIndex].occupation = document.getElementById('editOccupation').value;
+            tenants[tenantIndex].emergencyContact = document.getElementById('editEmergencyContact').value;
+            tenants[tenantIndex].status = document.getElementById('editStatus').value;
+            tenants[tenantIndex].notes = document.getElementById('editNotes').value;
+            
+            // Update password if provided
+            const newPassword = document.getElementById('editPassword').value;
+            if (newPassword) {
+                tenants[tenantIndex].password = newPassword;
+            }
+            
+            localStorage.setItem('tenants', JSON.stringify(tenants));
+            
+            RentariumUtils.showNotification('Tenant updated successfully!', 'success');
+            closeEditTenantModal();
+            loadTenants();
+        }
+
+        function closeEditTenantModal() {
+            document.getElementById('editTenantModal').classList.remove('active');
+            currentTenantId = null;
+        }
+
+        async function deactivateTenant(tenantId) {
+            const confirm = await RentariumUtils.confirmAction('Are you sure you want to deactivate this tenant? They will no longer be able to log in.');
+            if (!confirm) return;
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenantIndex = tenants.findIndex(t => t.id === tenantId);
+            
+            if (tenantIndex === -1) return;
+            
+            tenants[tenantIndex].status = 'inactive';
+            localStorage.setItem('tenants', JSON.stringify(tenants));
+            
+            RentariumUtils.showNotification('Tenant deactivated successfully!', 'success');
+            loadTenants();
+        }
+
+        async function activateTenant(tenantId) {
+            const confirm = await RentariumUtils.confirmAction('Activate this tenant account?');
+            if (!confirm) return;
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenantIndex = tenants.findIndex(t => t.id === tenantId);
+            
+            if (tenantIndex === -1) return;
+            
+            tenants[tenantIndex].status = 'active';
+            localStorage.setItem('tenants', JSON.stringify(tenants));
+            
+            RentariumUtils.showNotification('Tenant activated successfully!', 'success');
+            loadTenants();
+        }
+
+        function viewTenantPayments(tenantId) {
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            const tenantPayments = payments.filter(p => p.tenantId === tenantId);
+            
+            if (tenantPayments.length === 0) {
+                RentariumUtils.showNotification('No payment records found for this tenant.', 'info');
+                return;
+            }
+            
+            // Redirect to payment records with tenant filter
+            const url = new URL('admin-payment-records.html', window.location.origin);
+            url.searchParams.set('tenant', tenantId);
+            window.location.href = url.toString();
+        }
+
+        function sendMessageToTenant(email) {
+            const subject = encodeURIComponent('Message from Rentarium Management');
+            const body = encodeURIComponent('Dear Tenant,\n\n');
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+        }
+    </script>
+</body>
+</html>

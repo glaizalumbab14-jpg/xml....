@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make Payment - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .payment-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .payment-info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+        }
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .payment-method {
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .payment-method.selected {
+            border-color: #3498db;
+            background: #e3f2fd;
+        }
+        .payment-method i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .qr-container {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        .payment-steps {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .payment-step {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        .simulate-payment {
+            background: #fff3cd;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .payment-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="tenantInitial">T</div>
+                    <div>
+                        <p id="tenantName">Tenant</p>
+                        <small>Tenant Portal</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="tenant-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="tenant-room-list.html"><i class="fas fa-home"></i> Browse Rooms</a></li>
+                <li><a href="tenant-rental-request.html"><i class="fas fa-file-contract"></i> Rental Request</a></li>
+                <li><a href="tenant-payment.html" class="active"><i class="fas fa-credit-card"></i> Make Payment</a></li>
+                <li><a href="tenant-payment-history.html"><i class="fas fa-history"></i> Payment History</a></li>
+                <li><a href="tenant-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Make Payment</h1>
+                    <p>Pay your rent and other fees</p>
+                </div>
+                <a href="tenant-payment-history.html" class="btn btn-secondary">
+                    <i class="fas fa-history"></i> View History
+                </a>
+            </div>
+
+            <div class="content-container">
+                <div class="payment-container">
+                    <!-- Left Column: Payment Information -->
+                    <div>
+                        <div class="payment-info-card">
+                            <h3 style="color: white; margin-bottom: 20px;">Payment Summary</h3>
+                            <div id="paymentSummary">
+                                <!-- Payment summary will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 30px;">
+                            <h3>Payment Steps</h3>
+                            <div class="payment-steps">
+                                <div class="payment-step">
+                                    <div class="step-number">1</div>
+                                    <div>Select Method</div>
+                                </div>
+                                <div class="payment-step">
+                                    <div class="step-number">2</div>
+                                    <div>Scan QR/Pay</div>
+                                </div>
+                                <div class="payment-step">
+                                    <div class="step-number">3</div>
+                                    <div>Confirm</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Methods -->
+                        <div style="margin-top: 30px;">
+                            <h3>Select Payment Method</h3>
+                            <div class="payment-methods">
+                                <div class="payment-method selected" onclick="selectPaymentMethod('gcash')">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <div>GCash</div>
+                                </div>
+                                <div class="payment-method" onclick="selectPaymentMethod('bank')">
+                                    <i class="fas fa-university"></i>
+                                    <div>Bank Transfer</div>
+                                </div>
+                                <div class="payment-method" onclick="selectPaymentMethod('paymaya')">
+                                    <i class="fas fa-credit-card"></i>
+                                    <div>PayMaya</div>
+                                </div>
+                                <div class="payment-method" onclick="selectPaymentMethod('cash')">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    <div>Cash</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: QR Code & Payment -->
+                    <div>
+                        <!-- QR Code Section -->
+                        <div class="qr-container">
+                            <h3>Scan to Pay via GCash</h3>
+                            <div class="qr-code" id="qrCodeDisplay">
+                                <!-- QR code will be generated here -->
+                                <div style="text-align: center; padding: 20px;">
+                                    <i class="fas fa-qrcode fa-3x" style="color: #ddd;"></i>
+                                    <p style="margin-top: 10px; color: #666;">QR Code</p>
+                                </div>
+                            </div>
+                            <div id="qrDetails">
+                                <p><strong>Amount:</strong> <span id="qrAmount">₱0.00</span></p>
+                                <p><strong>Reference:</strong> <span id="qrReference">PAY-000000</span></p>
+                                <p><strong>Account Name:</strong> Rentarium Management</p>
+                                <p><strong>Account Number:</strong> 0917-123-4567</p>
+                            </div>
+                            <button class="btn btn-secondary" onclick="generateNewQR()" style="margin-top: 15px;">
+                                <i class="fas fa-sync-alt"></i> Generate New QR
+                            </button>
+                        </div>
+
+                        <!-- Manual Payment Details (for bank transfer) -->
+                        <div id="bankDetails" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                            <h3>Bank Transfer Details</h3>
+                            <div style="margin-top: 15px;">
+                                <p><strong>Bank:</strong> BDO (Banco de Oro)</p>
+                                <p><strong>Account Name:</strong> Rentarium Apartment Management</p>
+                                <p><strong>Account Number:</strong> 123-456-7890</p>
+                                <p><strong>Amount:</strong> <span id="bankAmount">₱0.00</span></p>
+                                <p><strong>Reference:</strong> <span id="bankReference">PAY-000000</span></p>
+                                <p><em>Please include the reference number in your transfer</em></p>
+                            </div>
+                        </div>
+
+                        <!-- Cash Payment Instructions -->
+                        <div id="cashInstructions" style="display: none; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                            <h3>Cash Payment Instructions</h3>
+                            <div style="margin-top: 15px;">
+                                <p><strong>Payment Location:</strong> Property Management Office</p>
+                                <p><strong>Office Hours:</strong> Mon-Fri, 9:00 AM - 5:00 PM</p>
+                                <p><strong>Amount:</strong> <span id="cashAmount">₱0.00</span></p>
+                                <p><strong>Reference:</strong> <span id="cashReference">PAY-000000</span></p>
+                                <p><em>Please bring exact amount and reference number</em></p>
+                            </div>
+                        </div>
+
+                        <!-- Simulate Payment (for demo) -->
+                        <div class="simulate-payment">
+                            <h4><i class="fas fa-flask"></i> Simulate Payment (Demo)</h4>
+                            <p>This is a simulation. In a real system, you would complete the payment using the selected method.</p>
+                            <div style="margin-top: 15px;">
+                                <button class="btn btn-success" onclick="simulatePayment()" id="simulateBtn">
+                                    <i class="fas fa-check-circle"></i> Simulate Payment Completion
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetPayment()" style="margin-left: 10px;">
+                                    <i class="fas fa-redo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Payment History Preview -->
+                        <div style="margin-top: 30px;">
+                            <h3>Recent Payments</h3>
+                            <div id="recentPaymentsPreview">
+                                <!-- Recent payments will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Payment Confirmation Modal -->
+    <div id="paymentConfirmationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Payment Confirmation</h3>
+                <button class="close-modal" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <div style="width: 60px; height: 60px; background: #27ae60; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i class="fas fa-check fa-2x" style="color: white;"></i>
+                    </div>
+                    <h3>Payment Successful!</h3>
+                    <p>Your payment has been recorded successfully.</p>
+                    
+                    <div id="paymentReceipt" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                        <!-- Receipt details will be loaded here -->
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-primary" onclick="printReceipt()">
+                            <i class="fas fa-print"></i> Print Receipt
+                        </button>
+                        <button class="btn btn-secondary" onclick="closePaymentModal()">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/payments.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('tenant')) {
+            window.location.href = '../tenant-login.html';
+        }
+
+        const paymentManager = window.paymentManager || new PaymentManager();
+        let selectedMethod = 'gcash';
+        let currentPaymentRef = '';
+        let paymentAmount = 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tenant = authSystem.getCurrentUser();
+            if (tenant) {
+                document.getElementById('tenantName').textContent = tenant.fullName;
+                document.getElementById('tenantInitial').textContent = tenant.fullName.charAt(0);
+            }
+            
+            loadPaymentSummary();
+            loadRecentPayments();
+            generatePaymentReference();
+            updatePaymentDetails();
+        });
+
+        function loadPaymentSummary() {
+            const tenant = authSystem.getCurrentUser();
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            
+            const tenantRoom = rooms.find(room => room.tenantId === tenant.id);
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const currentMonthPaid = payments.some(p => {
+                return p.tenantId === tenant.id &&
+                       p.status === 'paid' &&
+                       new Date(p.paymentDate).getMonth() === currentMonth &&
+                       new Date(p.paymentDate).getFullYear() === currentYear;
+            });
+            
+            const summaryDiv = document.getElementById('paymentSummary');
+            
+            if (!tenantRoom) {
+                summaryDiv.innerHTML = `
+                    <p style="margin-bottom: 20px;">You don't have an assigned room yet.</p>
+                    <a href="tenant-room-list.html" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">
+                        <i class="fas fa-home"></i> Browse Rooms
+                    </a>
+                `;
+                return;
+            }
+            
+            paymentAmount = tenantRoom.price;
+            
+            summaryDiv.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <p style="margin: 5px 0;"><strong>Room:</strong> ${tenantRoom.roomNumber}</p>
+                    <p style="margin: 5px 0;"><strong>Monthly Rent:</strong> ₱${tenantRoom.price.toLocaleString()}</p>
+                    <p style="margin: 5px 0;"><strong>Month:</strong> ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+                    <p style="margin: 5px 0;"><strong>Due Date:</strong> ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString()}</p>
+                </div>
+                <div style="font-size: 1.5rem; font-weight: bold; margin: 20px 0;">
+                    Total: ₱${tenantRoom.price.toLocaleString()}
+                </div>
+                <div style="margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                    ${currentMonthPaid ? 
+                        '<span style="color: #27ae60;"><i class="fas fa-check-circle"></i> This month already paid</span>' : 
+                        '<span style="color: #f39c12;"><i class="fas fa-exclamation-circle"></i> Payment due</span>'
+                    }
+                </div>
+            `;
+            
+            // Update QR amount
+            document.getElementById('qrAmount').textContent = `₱${tenantRoom.price.toLocaleString()}`;
+            document.getElementById('bankAmount').textContent = `₱${tenantRoom.price.toLocaleString()}`;
+            document.getElementById('cashAmount').textContent = `₱${tenantRoom.price.toLocaleString()}`;
+        }
+
+        function loadRecentPayments() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            
+            const previewDiv = document.getElementById('recentPaymentsPreview');
+            
+            if (payments.length === 0) {
+                previewDiv.innerHTML = `
+                    <p style="color: #666; text-align: center; padding: 20px;">No recent payments</p>
+                `;
+                return;
+            }
+            
+            let html = '<div style="max-height: 200px; overflow-y: auto;">';
+            payments.slice(-3).reverse().forEach(payment => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                        <div>
+                            <div style="font-weight: 500;">${new Date(payment.paymentDate).toLocaleDateString()}</div>
+                            <div style="font-size: 12px; color: #666;">${payment.paymentMethod}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: bold; color: ${payment.status === 'paid' ? '#27ae60' : '#e74c3c'}">
+                                ${RentariumUtils.formatCurrency(payment.amount)}
+                            </div>
+                            <div style="font-size: 11px; color: #666;">
+                                ${payment.receiptNumber || 'No receipt'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            previewDiv.innerHTML = html;
+        }
+
+        function generatePaymentReference() {
+            const date = new Date();
+            const year = date.getFullYear().toString().substr(-2);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            
+            currentPaymentRef = `PAY-${year}${month}${random}`;
+            
+            document.getElementById('qrReference').textContent = currentPaymentRef;
+            document.getElementById('bankReference').textContent = currentPaymentRef;
+            document.getElementById('cashReference').textContent = currentPaymentRef;
+        }
+
+        function generateNewQR() {
+            // Generate new reference
+            generatePaymentReference();
+            
+            // Animate QR code
+            const qrDisplay = document.getElementById('qrCodeDisplay');
+            qrDisplay.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-sync-alt fa-spin fa-2x" style="color: #3498db;"></i>
+                    <p style="margin-top: 10px; color: #666;">Generating new QR...</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                qrDisplay.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="width: 150px; height: 150px; background: repeating-linear-gradient(45deg, #000, #000 10px, #fff 10px, #fff 20px); margin: 0 auto;"></div>
+                        <p style="margin-top: 10px; color: #666;">QR Code: ${currentPaymentRef}</p>
+                    </div>
+                `;
+                RentariumUtils.showNotification('New QR code generated', 'success');
+            }, 1000);
+        }
+
+        function selectPaymentMethod(method) {
+            selectedMethod = method;
+            
+            // Update selected method UI
+            document.querySelectorAll('.payment-method').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Show/hide relevant sections
+            document.getElementById('bankDetails').style.display = method === 'bank' ? 'block' : 'none';
+            document.getElementById('cashInstructions').style.display = method === 'cash' ? 'block' : 'none';
+            
+            // Update simulate button text
+            const simulateBtn = document.getElementById('simulateBtn');
+            switch(method) {
+                case 'gcash':
+                    simulateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Simulate GCash Payment';
+                    break;
+                case 'bank':
+                    simulateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Simulate Bank Transfer';
+                    break;
+                case 'cash':
+                    simulateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Simulate Cash Payment';
+                    break;
+                case 'paymaya':
+                    simulateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Simulate PayMaya Payment';
+                    break;
+            }
+        }
+
+        function simulatePayment() {
+            const tenant = authSystem.getCurrentUser();
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenantRoom = rooms.find(room => room.tenantId === tenant.id);
+            
+            if (!tenantRoom) {
+                RentariumUtils.showNotification('No room assigned to your account', 'error');
+                return;
+            }
+            
+            // Create payment record
+            const paymentData = {
+                tenantId: tenant.id,
+                tenantName: tenant.fullName,
+                roomId: tenantRoom.id,
+                roomNumber: tenantRoom.roomNumber,
+                amount: tenantRoom.price,
+                paymentDate: new Date().toISOString(),
+                dueDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString().split('T')[0],
+                paymentMethod: selectedMethod.charAt(0).toUpperCase() + selectedMethod.slice(1),
+                status: 'paid',
+                receiptNumber: currentPaymentRef,
+                notes: 'Simulated payment for demonstration'
+            };
+            
+            const result = paymentManager.recordPayment(paymentData);
+            
+            if (result.success) {
+                // Show confirmation modal
+                showPaymentConfirmation(paymentData);
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        }
+
+        function showPaymentConfirmation(paymentData) {
+            const receiptDiv = document.getElementById('paymentReceipt');
+            receiptDiv.innerHTML = `
+                <p><strong>Receipt Number:</strong> ${paymentData.receiptNumber}</p>
+                <p><strong>Date:</strong> ${new Date(paymentData.paymentDate).toLocaleString()}</p>
+                <p><strong>Tenant:</strong> ${paymentData.tenantName}</p>
+                <p><strong>Room:</strong> ${paymentData.roomNumber}</p>
+                <p><strong>Amount:</strong> ${RentariumUtils.formatCurrency(paymentData.amount)}</p>
+                <p><strong>Payment Method:</strong> ${paymentData.paymentMethod}</p>
+                <p><strong>Status:</strong> <span style="color: #27ae60;">Paid</span></p>
+                <hr style="margin: 15px 0;">
+                <p><em>This is a simulated receipt for demonstration purposes.</em></p>
+            `;
+            
+            document.getElementById('paymentConfirmationModal').classList.add('active');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentConfirmationModal').classList.remove('active');
+            
+            // Reload data
+            loadPaymentSummary();
+            loadRecentPayments();
+            generatePaymentReference();
+        }
+
+        function resetPayment() {
+            generatePaymentReference();
+            RentariumUtils.showNotification('Payment reset', 'info');
+        }
+
+        function printReceipt() {
+            const printContent = document.getElementById('paymentReceipt').innerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Payment Receipt</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 40px; }
+                            @media print {
+                                body { margin: 0; }
+                                button { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>Payment Receipt</h2>
+                        ${printContent}
+                        <div style="margin-top: 30px; text-align: center;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Print Receipt
+                            </button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                                Close
+                            </button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function updatePaymentDetails() {
+            // Update amounts based on room
+            const tenant = authSystem.getCurrentUser();
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenantRoom = rooms.find(room => room.tenantId === tenant.id);
+            
+            if (tenantRoom) {
+                const amount = tenantRoom.price.toLocaleString();
+                document.getElementById('qrAmount').textContent = `₱${amount}`;
+                document.getElementById('bankAmount').textContent = `₱${amount}`;
+                document.getElementById('cashAmount').textContent = `₱${amount}`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Requests - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .request-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        .request-card.pending {
+            border-left-color: #f39c12;
+        }
+        .request-card.approved {
+            border-left-color: #27ae60;
+        }
+        .request-card.declined {
+            border-left-color: #e74c3c;
+        }
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        .request-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .badge-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-declined {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .request-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html" class="active"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Rental Requests</h1>
+                    <p>Manage tenant rental applications</p>
+                </div>
+                <button class="btn btn-primary" onclick="showCreateRequestModal()">
+                    <i class="fas fa-plus"></i> Create Request
+                </button>
+            </div>
+
+            <div class="content-container">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" onclick="filterRequests('all')">All Requests</div>
+                    <div class="tab" onclick="filterRequests('pending')">Pending</div>
+                    <div class="tab" onclick="filterRequests('approved')">Approved</div>
+                    <div class="tab" onclick="filterRequests('declined')">Declined</div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="stats-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #2c3e50;">Total</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="totalRequests">0</div>
+                    </div>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #856404;">Pending</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="pendingRequests">0</div>
+                    </div>
+                    <div style="background: #d4edda; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #155724;">Approved</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="approvedRequests">0</div>
+                    </div>
+                    <div style="background: #f8d7da; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #721c24;">Declined</div>
+                        <div style="font-size: 2rem; font-weight: bold;" id="declinedRequests">0</div>
+                    </div>
+                </div>
+
+                <!-- Requests List -->
+                <div id="requestsContainer">
+                    <!-- Requests will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Request Modal -->
+    <div id="createRequestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Rental Request</h3>
+                <button class="close-modal" onclick="closeCreateRequestModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createRequestForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Select Tenant *</label>
+                            <select id="requestTenant" required>
+                                <option value="">Select Tenant</option>
+                                <!-- Tenants will be populated here -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Room *</label>
+                            <select id="requestRoom" required>
+                                <option value="">Select Room</option>
+                                <!-- Rooms will be populated here -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Move-in Date *</label>
+                            <input type="date" id="requestMoveInDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contract Duration (months)</label>
+                            <input type="number" id="requestDuration" min="1" max="24" value="12">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="requestNotes" rows="3" placeholder="Additional notes about this request"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Create Request</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateRequestModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div id="requestDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Request Details</h3>
+                <button class="close-modal" onclick="closeRequestDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="requestDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/rooms.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        let currentFilter = 'all';
+        let currentRequestId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+            }
+            loadRentalRequests();
+        });
+
+        function loadRentalRequests() {
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            // Update statistics
+            const total = requests.length;
+            const pending = requests.filter(r => r.status === 'pending').length;
+            const approved = requests.filter(r => r.status === 'approved').length;
+            const declined = requests.filter(r => r.status === 'declined').length;
+            
+            document.getElementById('totalRequests').textContent = total;
+            document.getElementById('pendingRequests').textContent = pending;
+            document.getElementById('approvedRequests').textContent = approved;
+            document.getElementById('declinedRequests').textContent = declined;
+            
+            // Filter requests
+            let filteredRequests = requests;
+            if (currentFilter !== 'all') {
+                filteredRequests = requests.filter(r => r.status === currentFilter);
+            }
+            
+            displayRequests(filteredRequests, tenants, rooms);
+        }
+
+        function displayRequests(requests, tenants, rooms) {
+            const container = document.getElementById('requestsContainer');
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-file-contract fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                        <h3>No Rental Requests</h3>
+                        <p>${currentFilter === 'all' ? 'No rental requests found. Create one to get started.' : `No ${currentFilter} requests found.`}</p>
+                        ${currentFilter === 'all' ? `
+                            <button class="btn btn-primary" onclick="showCreateRequestModal()">
+                                <i class="fas fa-plus"></i> Create Request
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            requests.forEach(request => {
+                const tenant = tenants.find(t => t.id === request.tenantId);
+                const room = rooms.find(r => r.id === request.roomId);
+                
+                if (!tenant || !room) return;
+                
+                const requestCard = document.createElement('div');
+                requestCard.className = `request-card ${request.status}`;
+                
+                let statusBadge = '';
+                if (request.status === 'pending') {
+                    statusBadge = '<span class="status-badge badge-pending">Pending Review</span>';
+                } else if (request.status === 'approved') {
+                    statusBadge = '<span class="status-badge badge-approved">Approved</span>';
+                } else {
+                    statusBadge = '<span class="status-badge badge-declined">Declined</span>';
+                }
+                
+                requestCard.innerHTML = `
+                    <div class="request-header">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0;">${tenant.fullName}</h3>
+                            <p style="margin: 0; color: #666;">Request for Room ${room.roomNumber}</p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    
+                    <div class="request-details">
+                        <div>
+                            <strong><i class="fas fa-calendar"></i> Request Date:</strong><br>
+                            ${RentariumUtils.formatDate(request.requestDate)}
+                        </div>
+                        <div>
+                            <strong><i class="fas fa-sign-in-alt"></i> Move-in Date:</strong><br>
+                            ${new Date(request.moveInDate).toLocaleDateString()}
+                        </div>
+                        <div>
+                            <strong><i class="fas fa-money-bill-wave"></i> Monthly Rent:</strong><br>
+                            ₱${room.price.toLocaleString()}
+                        </div>
+                        ${request.approvedBy ? `
+                            <div>
+                                <strong><i class="fas fa-user-check"></i> Approved By:</strong><br>
+                                ${request.approvedBy}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${request.notes ? `
+                        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                            <strong>Notes:</strong> ${request.notes}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="request-actions">
+                        ${request.status === 'pending' ? `
+                            <button class="btn btn-success" onclick="approveRequest('${request.id}')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-danger" onclick="declineRequest('${request.id}')">
+                                <i class="fas fa-times"></i> Decline
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="viewRequestDetails('${request.id}')">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        ${request.status !== 'pending' ? `
+                            <button class="btn btn-warning" onclick="editRequest('${request.id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                
+                container.appendChild(requestCard);
+            });
+        }
+
+        function filterRequests(filter) {
+            currentFilter = filter;
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            loadRentalRequests();
+        }
+
+        function showCreateRequestModal() {
+            const tenantSelect = document.getElementById('requestTenant');
+            const roomSelect = document.getElementById('requestRoom');
+            
+            // Clear existing options
+            tenantSelect.innerHTML = '<option value="">Select Tenant</option>';
+            roomSelect.innerHTML = '<option value="">Select Room</option>';
+            
+            // Populate tenants (only active tenants without rooms)
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            tenants.forEach(tenant => {
+                if (tenant.status === 'active' && !tenant.roomId) {
+                    const option = document.createElement('option');
+                    option.value = tenant.id;
+                    option.textContent = `${tenant.fullName} (${tenant.username})`;
+                    tenantSelect.appendChild(option);
+                }
+            });
+            
+            // Populate available rooms
+            rooms.forEach(room => {
+                if (room.status === 'available') {
+                    const option = document.createElement('option');
+                    option.value = room.id;
+                    option.textContent = `Room ${room.roomNumber} - ${room.type} (₱${room.price}/month)`;
+                    roomSelect.appendChild(option);
+                }
+            });
+            
+            // Set default move-in date to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('requestMoveInDate').valueAsDate = tomorrow;
+            
+            document.getElementById('createRequestModal').classList.add('active');
+        }
+
+        function closeCreateRequestModal() {
+            document.getElementById('createRequestModal').classList.remove('active');
+            document.getElementById('createRequestForm').reset();
+        }
+
+        // Handle create request form submission
+        document.getElementById('createRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const requestData = {
+                tenantId: document.getElementById('requestTenant').value,
+                roomId: document.getElementById('requestRoom').value,
+                moveInDate: document.getElementById('requestMoveInDate').value,
+                duration: parseInt(document.getElementById('requestDuration').value) || 12,
+                notes: document.getElementById('requestNotes').value
+            };
+
+            // Create new request
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const newRequest = {
+                id: 'REQ' + Date.now() + Math.random().toString(36).substr(2, 5),
+                ...requestData,
+                requestDate: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            requests.push(newRequest);
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            
+            RentariumUtils.showNotification('Rental request created successfully!', 'success');
+            closeCreateRequestModal();
+            loadRentalRequests();
+        });
+
+        async function approveRequest(requestId) {
+            const confirm = await RentariumUtils.confirmAction('Are you sure you want to approve this rental request? This will assign the room to the tenant.');
+            if (!confirm) return;
+            
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const requestIndex = requests.findIndex(r => r.id === requestId);
+            
+            if (requestIndex === -1) {
+                RentariumUtils.showNotification('Request not found', 'error');
+                return;
+            }
+            
+            // Update request status
+            requests[requestIndex].status = 'approved';
+            requests[requestIndex].approvedBy = authSystem.getCurrentUser().username;
+            requests[requestIndex].approvedDate = new Date().toISOString();
+            
+            // Assign room to tenant
+            const roomId = requests[requestIndex].roomId;
+            const tenantId = requests[requestIndex].tenantId;
+            
+            // Update room status
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const roomIndex = rooms.findIndex(r => r.id === roomId);
+            if (roomIndex !== -1) {
+                rooms[roomIndex].status = 'occupied';
+                rooms[roomIndex].tenantId = tenantId;
+                rooms[roomIndex].occupiedSince = new Date().toISOString();
+                localStorage.setItem('rooms', JSON.stringify(rooms));
+            }
+            
+            // Update tenant room assignment
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenantIndex = tenants.findIndex(t => t.id === tenantId);
+            if (tenantIndex !== -1) {
+                tenants[tenantIndex].roomId = roomId;
+                tenants[tenantIndex].moveInDate = requests[requestIndex].moveInDate;
+                localStorage.setItem('tenants', JSON.stringify(tenants));
+            }
+            
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            
+            RentariumUtils.showNotification('Request approved successfully!', 'success');
+            loadRentalRequests();
+        }
+
+        async function declineRequest(requestId) {
+            const reason = prompt('Please provide a reason for declining this request:');
+            if (!reason) return;
+            
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const requestIndex = requests.findIndex(r => r.id === requestId);
+            
+            if (requestIndex === -1) {
+                RentariumUtils.showNotification('Request not found', 'error');
+                return;
+            }
+            
+            requests[requestIndex].status = 'declined';
+            requests[requestIndex].declinedBy = authSystem.getCurrentUser().username;
+            requests[requestIndex].declinedDate = new Date().toISOString();
+            requests[requestIndex].declineReason = reason;
+            
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            
+            RentariumUtils.showNotification('Request declined successfully!', 'success');
+            loadRentalRequests();
+        }
+
+        function viewRequestDetails(requestId) {
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            const request = requests.find(r => r.id === requestId);
+            if (!request) return;
+            
+            const tenant = tenants.find(t => t.id === request.tenantId);
+            const room = rooms.find(r => r.id === request.roomId);
+            
+            let detailsContent = `
+                <div style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h4>Tenant Information</h4>
+                            ${tenant ? `
+                                <p><strong>Name:</strong> ${tenant.fullName}</p>
+                                <p><strong>Email:</strong> ${tenant.email}</p>
+                                <p><strong>Phone:</strong> ${tenant.phone}</p>
+                                <p><strong>Occupation:</strong> ${tenant.occupation || 'Not specified'}</p>
+                            ` : '<p>Tenant information not found</p>'}
+                        </div>
+                        <div>
+                            <h4>Room Information</h4>
+                            ${room ? `
+                                <p><strong>Room:</strong> ${room.roomNumber}</p>
+                                <p><strong>Type:</strong> ${room.type}</p>
+                                <p><strong>Floor:</strong> ${room.floor}</p>
+                                <p><strong>Rent:</strong> ₱${room.price.toLocaleString()}/month</p>
+                            ` : '<p>Room information not found</p>'}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4>Request Details</h4>
+                        <p><strong>Request Date:</strong> ${RentariumUtils.formatDate(request.requestDate)}</p>
+                        <p><strong>Move-in Date:</strong> ${new Date(request.moveInDate).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> ${request.status}</p>
+                        
+                        ${request.notes ? `<p><strong>Notes:</strong> ${request.notes}</p>` : ''}
+                        
+                        ${request.approvedBy ? `
+                            <p><strong>Approved By:</strong> ${request.approvedBy}</p>
+                            <p><strong>Approval Date:</strong> ${RentariumUtils.formatDate(request.approvedDate)}</p>
+                        ` : ''}
+                        
+                        ${request.declinedBy ? `
+                            <p><strong>Declined By:</strong> ${request.declinedBy}</p>
+                            <p><strong>Decline Date:</strong> ${RentariumUtils.formatDate(request.declinedDate)}</p>
+                            <p><strong>Reason:</strong> ${request.declineReason}</p>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('requestDetailsContent').innerHTML = detailsContent;
+            document.getElementById('requestDetailsModal').classList.add('active');
+        }
+
+        function closeRequestDetailsModal() {
+            document.getElementById('requestDetailsModal').classList.remove('active');
+        }
+
+        function editRequest(requestId) {
+            currentRequestId = requestId;
+            const requests = JSON.parse(localStorage.getItem('rental_requests')) || [];
+            const request = requests.find(r => r.id === requestId);
+            
+            if (!request) return;
+            
+            // For simplicity, we'll just let admin change status
+            const newStatus = prompt('Enter new status (approved/declined):', request.status);
+            if (!newStatus || !['approved', 'declined'].includes(newStatus)) return;
+            
+            const requestIndex = requests.findIndex(r => r.id === requestId);
+            if (requestIndex === -1) return;
+            
+            requests[requestIndex].status = newStatus;
+            if (newStatus === 'approved') {
+                requests[requestIndex].approvedBy = authSystem.getCurrentUser().username;
+                requests[requestIndex].approvedDate = new Date().toISOString();
+            } else {
+                const reason = prompt('Enter decline reason:');
+                if (reason) {
+                    requests[requestIndex].declinedBy = authSystem.getCurrentUser().username;
+                    requests[requestIndex].declinedDate = new Date().toISOString();
+                    requests[requestIndex].declineReason = reason;
+                }
+            }
+            
+            localStorage.setItem('rental_requests', JSON.stringify(requests));
+            RentariumUtils.showNotification('Request updated successfully!', 'success');
+            loadRentalRequests();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .announcement-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        .announcement-card.high-priority {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+        .announcement-card.medium-priority {
+            border-left-color: #f39c12;
+            background: #fff9e6;
+        }
+        .announcement-card.low-priority {
+            border-left-color: #2ecc71;
+        }
+        .announcement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        .announcement-priority {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .priority-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .priority-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .priority-low {
+            background: #d4edda;
+            color: #155724;
+        }
+        .announcement-date {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .announcement-category {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .filters-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .pinned-badge {
+            background: #f39c12;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+        .view-count {
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="tenantInitial">T</div>
+                    <div>
+                        <p id="tenantName">Tenant</p>
+                        <small>Tenant Portal</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="tenant-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="tenant-room-list.html"><i class="fas fa-home"></i> Browse Rooms</a></li>
+                <li><a href="tenant-rental-request.html"><i class="fas fa-file-contract"></i> Rental Request</a></li>
+                <li><a href="tenant-payment.html"><i class="fas fa-credit-card"></i> Make Payment</a></li>
+                <li><a href="tenant-payment-history.html"><i class="fas fa-history"></i> Payment History</a></li>
+                <li><a href="tenant-announcements.html" class="active"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Announcements</h1>
+                    <p>Stay updated with important notices</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="unreadCount" style="background: #e74c3c; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold;">0 unread</span>
+                </div>
+            </div>
+
+            <div class="content-container">
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <button class="filter-btn active" onclick="filterAnnouncements('all')">
+                        <i class="fas fa-list"></i> All
+                    </button>
+                    <button class="filter-btn" onclick="filterAnnouncements('unread')">
+                        <i class="fas fa-envelope"></i> Unread
+                    </button>
+                    <button class="filter-btn" onclick="filterAnnouncements('high')">
+                        <i class="fas fa-exclamation-circle"></i> High Priority
+                    </button>
+                    <button class="filter-btn" onclick="filterAnnouncements('maintenance')">
+                        <i class="fas fa-tools"></i> Maintenance
+                    </button>
+                    <button class="filter-btn" onclick="filterAnnouncements('payment')">
+                        <i class="fas fa-credit-card"></i> Payment
+                    </button>
+                    <button class="filter-btn" onclick="filterAnnouncements('event')">
+                        <i class="fas fa-calendar-alt"></i> Events
+                    </button>
+                    <button class="filter-btn" onclick="markAllAsRead()" style="margin-left: auto;">
+                        <i class="fas fa-check-double"></i> Mark All as Read
+                    </button>
+                </div>
+
+                <!-- Search Box -->
+                <div style="margin-bottom: 20px; position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #95a5a6;"></i>
+                    <input type="text" id="searchAnnouncements" placeholder="Search announcements..." 
+                           style="width: 100%; padding: 12px 20px 12px 45px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 16px;"
+                           onkeyup="searchAnnouncements()">
+                </div>
+
+                <!-- Announcements List -->
+                <div id="announcementsContainer">
+                    <!-- Announcements will be loaded here -->
+                </div>
+
+                <!-- Load More Button -->
+                <div id="loadMoreContainer" style="text-align: center; margin-top: 30px; display: none;">
+                    <button class="btn btn-secondary" onclick="loadMoreAnnouncements()" id="loadMoreBtn">
+                        <i class="fas fa-plus"></i> Load More Announcements
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Announcement Details Modal -->
+    <div id="announcementDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Announcement Details</h3>
+                <button class="close-modal" onclick="closeAnnouncementDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="announcementDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/announcements.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('tenant')) {
+            window.location.href = '../tenant-login.html';
+        }
+
+        const announcementManager = window.announcementManager || new AnnouncementManager();
+        let currentFilter = 'all';
+        let currentPage = 1;
+        const announcementsPerPage = 10;
+        let allAnnouncements = [];
+        let readAnnouncements = JSON.parse(localStorage.getItem('read_announcements') || '[]');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tenant = authSystem.getCurrentUser();
+            if (tenant) {
+                document.getElementById('tenantName').textContent = tenant.fullName;
+                document.getElementById('tenantInitial').textContent = tenant.fullName.charAt(0);
+            }
+            loadAnnouncements();
+            updateUnreadCount();
+        });
+
+        function loadAnnouncements() {
+            // Get published announcements
+            allAnnouncements = announcementManager.getPublishedAnnouncements();
+            
+            // Sort by pinned first, then by date (newest first)
+            allAnnouncements.sort((a, b) => {
+                if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+                return new Date(b.date) - new Date(a.date);
+            });
+            
+            displayAnnouncements();
+        }
+
+        function displayAnnouncements() {
+            const container = document.getElementById('announcementsContainer');
+            
+            if (allAnnouncements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-bullhorn fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                        <h3>No Announcements</h3>
+                        <p>No announcements have been posted yet.</p>
+                    </div>
+                `;
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                return;
+            }
+            
+            // Apply filter
+            let filteredAnnouncements = [...allAnnouncements];
+            
+            switch(currentFilter) {
+                case 'unread':
+                    filteredAnnouncements = filteredAnnouncements.filter(a => !readAnnouncements.includes(a.id));
+                    break;
+                case 'high':
+                    filteredAnnouncements = filteredAnnouncements.filter(a => a.priority === 'high');
+                    break;
+                case 'maintenance':
+                    filteredAnnouncements = filteredAnnouncements.filter(a => a.category === 'maintenance');
+                    break;
+                case 'payment':
+                    filteredAnnouncements = filteredAnnouncements.filter(a => a.category === 'payment');
+                    break;
+                case 'event':
+                    filteredAnnouncements = filteredAnnouncements.filter(a => a.category === 'event');
+                    break;
+            }
+            
+            // Apply search filter
+            const searchTerm = document.getElementById('searchAnnouncements').value.toLowerCase();
+            if (searchTerm) {
+                filteredAnnouncements = filteredAnnouncements.filter(a => 
+                    a.title.toLowerCase().includes(searchTerm) || 
+                    a.content.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Calculate pagination
+            const startIndex = 0;
+            const endIndex = currentPage * announcementsPerPage;
+            const announcementsToShow = filteredAnnouncements.slice(startIndex, endIndex);
+            
+            if (announcementsToShow.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                        <h3>No Announcements Found</h3>
+                        <p>No announcements match your current filter.</p>
+                        <button class="btn btn-primary" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> Reset Filters
+                        </button>
+                    </div>
+                `;
+                document.getElementById('loadMoreContainer').style.display = 'none';
+                return;
+            }
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // Display announcements
+            announcementsToShow.forEach(announcement => {
+                const isRead = readAnnouncements.includes(announcement.id);
+                const announcementCard = document.createElement('div');
+                announcementCard.className = `announcement-card ${announcement.priority}-priority`;
+                if (isRead) {
+                    announcementCard.style.opacity = '0.8';
+                }
+                
+                let priorityText = 'Low Priority';
+                let priorityClass = 'priority-low';
+                if (announcement.priority === 'high') {
+                    priorityText = 'High Priority';
+                    priorityClass = 'priority-high';
+                } else if (announcement.priority === 'medium') {
+                    priorityText = 'Medium Priority';
+                    priorityClass = 'priority-medium';
+                }
+                
+                // Increment views when displayed
+                announcementManager.incrementViews(announcement.id);
+                
+                announcementCard.innerHTML = `
+                    <div class="announcement-header">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0; display: flex; align-items: center;">
+                                ${announcement.title}
+                                ${announcement.pinned ? '<span class="pinned-badge">PINNED</span>' : ''}
+                                ${!isRead ? '<span style="background: #e74c3c; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 10px;">NEW</span>' : ''}
+                            </h3>
+                            <div class="announcement-date">
+                                <i class="fas fa-calendar-alt"></i> ${RentariumUtils.formatDate(announcement.date)}
+                                <span style="margin: 0 10px;">•</span>
+                                <span class="announcement-category">${announcement.category}</span>
+                                <span class="announcement-priority ${priorityClass}">
+                                    ${priorityText}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 15px 0; line-height: 1.6;">
+                        ${announcement.content.length > 200 ? 
+                            announcement.content.substring(0, 200) + '...' : 
+                            announcement.content
+                        }
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="view-count">
+                            <i class="fas fa-eye"></i> ${announcement.views || 0} views
+                            ${announcement.expiryDate ? `
+                                <span style="margin-left: 15px;">
+                                    <i class="fas fa-clock"></i> Expires: ${new Date(announcement.expiryDate).toLocaleDateString()}
+                                </span>
+                            ` : ''}
+                        </div>
+                        <div>
+                            <button class="btn-action btn-view" onclick="viewAnnouncementDetails('${announcement.id}')">
+                                <i class="fas fa-eye"></i> Read More
+                            </button>
+                            ${!isRead ? `
+                                <button class="btn-action btn-success" onclick="markAsRead('${announcement.id}', event)">
+                                    <i class="fas fa-check"></i> Mark Read
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(announcementCard);
+            });
+            
+            // Show/hide load more button
+            if (filteredAnnouncements.length > endIndex) {
+                document.getElementById('loadMoreContainer').style.display = 'block';
+            } else {
+                document.getElementById('loadMoreContainer').style.display = 'none';
+            }
+        }
+
+        function filterAnnouncements(filter) {
+            currentFilter = filter;
+            currentPage = 1;
+            
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            displayAnnouncements();
+            updateUnreadCount();
+        }
+
+        function searchAnnouncements() {
+            currentPage = 1;
+            displayAnnouncements();
+        }
+
+        function resetFilters() {
+            currentFilter = 'all';
+            currentPage = 1;
+            document.getElementById('searchAnnouncements').value = '';
+            
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.filter-btn')[0].classList.add('active');
+            
+            displayAnnouncements();
+        }
+
+        function loadMoreAnnouncements() {
+            currentPage++;
+            displayAnnouncements();
+        }
+
+        function viewAnnouncementDetails(announcementId) {
+            const announcement = announcementManager.getAnnouncementById(announcementId);
+            if (!announcement) return;
+            
+            // Mark as read
+            markAsRead(announcementId);
+            
+            let priorityText = 'Low Priority';
+            if (announcement.priority === 'high') {
+                priorityText = 'High Priority';
+            } else if (announcement.priority === 'medium') {
+                priorityText = 'Medium Priority';
+            }
+            
+            const detailsContent = `
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="margin-bottom: 10px;">${announcement.title}</h2>
+                        <div style="color: #666; font-size: 14px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                                <span style="background: ${announcement.priority === 'high' ? '#e74c3c' : announcement.priority === 'medium' ? '#f39c12' : '#2ecc71'}; 
+                                      color: white; padding: 5px 12px; border-radius: 15px; font-size: 12px;">
+                                    ${priorityText}
+                                </span>
+                                <span style="background: #e3f2fd; color: #1976d2; padding: 5px 12px; border-radius: 15px; font-size: 12px;">
+                                    ${announcement.category}
+                                </span>
+                                ${announcement.pinned ? '<span style="background: #f39c12; color: white; padding: 5px 12px; border-radius: 15px; font-size: 12px;">PINNED</span>' : ''}
+                            </div>
+                            <div>
+                                <i class="fas fa-calendar-alt"></i> ${RentariumUtils.formatDate(announcement.date)}
+                                <span style="margin: 0 15px;">•</span>
+                                <i class="fas fa-eye"></i> ${announcement.views || 0} views
+                                ${announcement.expiryDate ? `
+                                    <span style="margin: 0 15px;">•</span>
+                                    <i class="fas fa-clock"></i> Expires: ${new Date(announcement.expiryDate).toLocaleDateString()}
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="line-height: 1.8; margin-bottom: 30px; white-space: pre-line;">
+                        ${announcement.content}
+                    </div>
+                    
+                    <div style="padding-top: 20px; border-top: 1px solid #eee;">
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="printAnnouncement('${announcement.id}')">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                            <button class="btn btn-secondary" onclick="shareAnnouncement('${announcement.id}')">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
+                            <button class="btn btn-secondary" onclick="closeAnnouncementDetailsModal()">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('announcementDetailsContent').innerHTML = detailsContent;
+            document.getElementById('announcementDetailsModal').classList.add('active');
+        }
+
+        function closeAnnouncementDetailsModal() {
+            document.getElementById('announcementDetailsModal').classList.remove('active');
+        }
+
+        function markAsRead(announcementId, event) {
+            if (event) event.stopPropagation();
+            
+            if (!readAnnouncements.includes(announcementId)) {
+                readAnnouncements.push(announcementId);
+                localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
+                
+                RentariumUtils.showNotification('Marked as read', 'success');
+                updateUnreadCount();
+                
+                // If viewing from list, update the card
+                if (currentFilter === 'unread') {
+                    loadAnnouncements();
+                }
+            }
+        }
+
+        function markAllAsRead() {
+            allAnnouncements.forEach(announcement => {
+                if (!readAnnouncements.includes(announcement.id)) {
+                    readAnnouncements.push(announcement.id);
+                }
+            });
+            
+            localStorage.setItem('read_announcements', JSON.stringify(readAnnouncements));
+            RentariumUtils.showNotification('All announcements marked as read', 'success');
+            updateUnreadCount();
+            displayAnnouncements();
+        }
+
+        function updateUnreadCount() {
+            const unreadCount = allAnnouncements.filter(a => !readAnnouncements.includes(a.id)).length;
+            document.getElementById('unreadCount').textContent = `${unreadCount} unread`;
+        }
+
+        function printAnnouncement(announcementId) {
+            const announcement = announcementManager.getAnnouncementById(announcementId);
+            if (!announcement) return;
+            
+            const printContent = `
+                <div style="padding: 30px; font-family: Arial, sans-serif;">
+                    <h1 style="text-align: center; margin-bottom: 30px;">${announcement.title}</h1>
+                    <div style="text-align: center; margin-bottom: 30px; color: #666;">
+                        <p><strong>Date:</strong> ${RentariumUtils.formatDate(announcement.date)}</p>
+                        <p><strong>Category:</strong> ${announcement.category} | <strong>Priority:</strong> ${announcement.priority}</p>
+                    </div>
+                    <div style="line-height: 1.8; margin-bottom: 30px; white-space: pre-line;">
+                        ${announcement.content}
+                    </div>
+                    <div style="text-align: center; margin-top: 50px; color: #666; font-size: 14px;">
+                        <p>Printed from Rentarium System on ${new Date().toLocaleString()}</p>
+                    </div>
+                </div>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>${announcement.title}</title>
+                        <style>
+                            @media print {
+                                body { margin: 0; }
+                                button { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${printContent}
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Print Announcement
+                            </button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                                Close
+                            </button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function shareAnnouncement(announcementId) {
+            const announcement = announcementManager.getAnnouncementById(announcementId);
+            if (!announcement) return;
+            
+            const shareText = `Check out this announcement from Rentarium:\n\n${announcement.title}\n\n${announcement.content.substring(0, 100)}...\n\nView in Rentarium System.`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: announcement.title,
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                // Fallback: Copy to clipboard
+                navigator.clipboard.writeText(shareText).then(() => {
+                    RentariumUtils.showNotification('Announcement copied to clipboard', 'success');
+                });
+            }
+        }
+
+        // Auto-check for new announcements every 30 seconds
+        setInterval(() => {
+            const newAnnouncements = announcementManager.getPublishedAnnouncements();
+            if (newAnnouncements.length !== allAnnouncements.length) {
+                loadAnnouncements();
+                updateUnreadCount();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

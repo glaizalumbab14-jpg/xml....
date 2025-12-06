@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Records - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .payment-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .payment-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-overdue {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .payment-details-modal {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html" class="active"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Payment Records</h1>
+                    <p>Manage and track rent payments</p>
+                </div>
+                <button class="btn btn-primary" onclick="showRecordPaymentModal()">
+                    <i class="fas fa-plus"></i> Record Payment
+                </button>
+            </div>
+
+            <div class="content-container">
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Collected</div>
+                        <div class="summary-value" id="totalCollected">₱0</div>
+                        <div class="summary-sublabel">This Month</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Pending Payments</div>
+                        <div class="summary-value" id="pendingPayments">0</div>
+                        <div class="summary-sublabel">Unpaid Rent</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Overdue</div>
+                        <div class="summary-value" id="overduePayments">0</div>
+                        <div class="summary-sublabel">Past Due Date</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Collection Rate</div>
+                        <div class="summary-value" id="collectionRate">0%</div>
+                        <div class="summary-sublabel">This Month</div>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="export-buttons">
+                    <button class="btn btn-secondary" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv"></i> Export to CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="printReport()">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                    <button class="btn btn-warning" onclick="generateMonthlyReport()">
+                        <i class="fas fa-chart-bar"></i> Generate Report
+                    </button>
+                </div>
+
+                <!-- Payment Filters -->
+                <div class="payment-filters">
+                    <h3><i class="fas fa-filter"></i> Filter Payments</h3>
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="statusFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Status</option>
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="overdue">Overdue</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Month</label>
+                            <select id="monthFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Months</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Year</label>
+                            <select id="yearFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Years</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tenant</label>
+                            <select id="tenantFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Tenants</option>
+                                <!-- Tenants will be populated here -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments Table -->
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>Tenant</th>
+                                <th>Room</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Due Date</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <!-- Payments will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="recordPaymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Record New Payment</h3>
+                <button class="close-modal" onclick="closeRecordPaymentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="recordPaymentForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Select Tenant *</label>
+                            <select id="paymentTenant" required onchange="loadTenantDetails()">
+                                <option value="">Select Tenant</option>
+                                <!-- Tenants will be populated here -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Room</label>
+                            <input type="text" id="paymentRoom" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Monthly Rent</label>
+                            <input type="text" id="monthlyRent" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Amount (₱) *</label>
+                            <input type="number" id="paymentAmount" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Payment Date *</label>
+                            <input type="date" id="paymentDate" required value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        <div class="form-group">
+                            <label>Due Date</label>
+                            <input type="date" id="dueDate">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Payment Method *</label>
+                            <select id="paymentMethod" required>
+                                <option value="">Select Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="GCash">GCash</option>
+                                <option value="PayMaya">PayMaya</option>
+                                <option value="Check">Check</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select id="paymentStatus" required>
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Receipt/Reference Number</label>
+                        <input type="text" id="receiptNumber" placeholder="Enter receipt number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="paymentNotes" rows="3" placeholder="Additional notes about this payment"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Record Payment</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeRecordPaymentModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details Modal -->
+    <div id="paymentDetailsModal" class="modal">
+        <div class="modal-content payment-details-modal">
+            <div class="modal-header">
+                <h3>Payment Details</h3>
+                <button class="close-modal" onclick="closePaymentDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="paymentDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/payments.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        const paymentManager = window.paymentManager || new PaymentManager();
+        let currentPaymentId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+            }
+            loadPayments();
+            loadSummary();
+            populateTenantFilter();
+            populatePaymentTenantSelect();
+        });
+
+        function loadPayments() {
+            const payments = paymentManager.getAllPayments();
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            const tableBody = document.getElementById('paymentsTableBody');
+            tableBody.innerHTML = '';
+            
+            if (payments.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-credit-card fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                            <h3>No Payment Records</h3>
+                            <p>Record your first payment to get started.</p>
+                            <button class="btn btn-primary" onclick="showRecordPaymentModal()">
+                                <i class="fas fa-plus"></i> Record Payment
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Apply filters
+            let filteredPayments = payments;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const monthFilter = document.getElementById('monthFilter').value;
+            const yearFilter = document.getElementById('yearFilter').value;
+            const tenantFilter = document.getElementById('tenantFilter').value;
+            
+            if (statusFilter) {
+                filteredPayments = filteredPayments.filter(p => p.status === statusFilter);
+            }
+            
+            if (monthFilter) {
+                filteredPayments = filteredPayments.filter(p => {
+                    const paymentMonth = new Date(p.paymentDate).getMonth() + 1;
+                    return paymentMonth == monthFilter;
+                });
+            }
+            
+            if (yearFilter) {
+                filteredPayments = filteredPayments.filter(p => {
+                    const paymentYear = new Date(p.paymentDate).getFullYear();
+                    return paymentYear == yearFilter;
+                });
+            }
+            
+            if (tenantFilter) {
+                filteredPayments = filteredPayments.filter(p => p.tenantId === tenantFilter);
+            }
+            
+            // Sort by date (newest first)
+            filteredPayments.sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+            
+            // Display payments
+            filteredPayments.forEach(payment => {
+                const tenant = tenants.find(t => t.id === payment.tenantId);
+                const room = rooms.find(r => r.id === payment.roomId);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${payment.receiptNumber || payment.id.substring(0, 8)}</td>
+                    <td>${tenant ? tenant.fullName : 'Unknown Tenant'}</td>
+                    <td>${room ? `Room ${room.roomNumber}` : 'No Room'}</td>
+                    <td>${RentariumUtils.formatCurrency(payment.amount)}</td>
+                    <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                    <td>${payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : '-'}</td>
+                    <td>${payment.paymentMethod}</td>
+                    <td>
+                        <span class="payment-status status-${payment.status}">
+                            ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-action btn-view" onclick="viewPaymentDetails('${payment.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn-action btn-edit" onclick="editPayment('${payment.id}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        ${payment.status !== 'paid' ? `
+                            <button class="btn-action btn-success" onclick="markAsPaid('${payment.id}')">
+                                <i class="fas fa-check"></i> Mark Paid
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function loadSummary() {
+            const payments = paymentManager.getAllPayments();
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+            
+            // Monthly payments
+            const monthlyPayments = payments.filter(p => {
+                const paymentDate = new Date(p.paymentDate);
+                return paymentDate.getMonth() + 1 === currentMonth && 
+                       paymentDate.getFullYear() === currentYear &&
+                       p.status === 'paid';
+            });
+            
+            const totalCollected = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
+            
+            // Pending payments
+            const pendingPayments = payments.filter(p => p.status === 'pending').length;
+            
+            // Overdue payments
+            const overduePayments = payments.filter(p => {
+                if (p.status !== 'pending') return false;
+                if (!p.dueDate) return false;
+                return new Date(p.dueDate) < new Date();
+            }).length;
+            
+            // Collection rate
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+            const expectedRevenue = occupiedRooms * 10000; // Assuming average rent
+            const collectionRate = expectedRevenue > 0 ? Math.round((totalCollected / expectedRevenue) * 100) : 0;
+            
+            document.getElementById('totalCollected').textContent = RentariumUtils.formatCurrency(totalCollected);
+            document.getElementById('pendingPayments').textContent = pendingPayments;
+            document.getElementById('overduePayments').textContent = overduePayments;
+            document.getElementById('collectionRate').textContent = `${collectionRate}%`;
+        }
+
+        function populateTenantFilter() {
+            const tenantSelect = document.getElementById('tenantFilter');
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            
+            tenants.forEach(tenant => {
+                if (tenant.status === 'active') {
+                    const option = document.createElement('option');
+                    option.value = tenant.id;
+                    option.textContent = `${tenant.fullName} (${tenant.username})`;
+                    tenantSelect.appendChild(option);
+                }
+            });
+        }
+
+        function populatePaymentTenantSelect() {
+            const tenantSelect = document.getElementById('paymentTenant');
+            tenantSelect.innerHTML = '<option value="">Select Tenant</option>';
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            tenants.forEach(tenant => {
+                if (tenant.status === 'active') {
+                    const option = document.createElement('option');
+                    option.value = tenant.id;
+                    option.textContent = `${tenant.fullName} (${tenant.username})`;
+                    tenantSelect.appendChild(option);
+                }
+            });
+        }
+
+        function loadTenantDetails() {
+            const tenantId = document.getElementById('paymentTenant').value;
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            const tenant = tenants.find(t => t.id === tenantId);
+            if (!tenant) return;
+            
+            const room = rooms.find(r => r.id === tenant.roomId);
+            
+            document.getElementById('paymentRoom').value = room ? `Room ${room.roomNumber}` : 'No Room Assigned';
+            document.getElementById('monthlyRent').value = room ? RentariumUtils.formatCurrency(room.price) : '₱0';
+            document.getElementById('paymentAmount').value = room ? room.price : '';
+            
+            // Set due date to end of current month
+            const now = new Date();
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            document.getElementById('dueDate').value = lastDay.toISOString().split('T')[0];
+        }
+
+        function showRecordPaymentModal() {
+            document.getElementById('recordPaymentModal').classList.add('active');
+        }
+
+        function closeRecordPaymentModal() {
+            document.getElementById('recordPaymentModal').classList.remove('active');
+            document.getElementById('recordPaymentForm').reset();
+        }
+
+        // Handle record payment form submission
+        document.getElementById('recordPaymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const paymentData = {
+                tenantId: document.getElementById('paymentTenant').value,
+                amount: parseFloat(document.getElementById('paymentAmount').value),
+                paymentDate: document.getElementById('paymentDate').value,
+                dueDate: document.getElementById('dueDate').value || null,
+                paymentMethod: document.getElementById('paymentMethod').value,
+                status: document.getElementById('paymentStatus').value,
+                receiptNumber: document.getElementById('receiptNumber').value,
+                notes: document.getElementById('paymentNotes').value
+            };
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const tenant = tenants.find(t => t.id === paymentData.tenantId);
+            if (tenant && tenant.roomId) {
+                paymentData.roomId = tenant.roomId;
+            }
+            
+            if (tenant) {
+                paymentData.tenantName = tenant.fullName;
+            }
+            
+            const result = paymentManager.recordPayment(paymentData);
+            if (result.success) {
+                RentariumUtils.showNotification('Payment recorded successfully!', 'success');
+                closeRecordPaymentModal();
+                loadPayments();
+                loadSummary();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        });
+
+        function viewPaymentDetails(paymentId) {
+            const payment = paymentManager.getPaymentById(paymentId);
+            if (!payment) return;
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenant = tenants.find(t => t.id === payment.tenantId);
+            const room = rooms.find(r => r.id === payment.roomId);
+            
+            let detailsContent = `
+                <div style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <h4>Payment Information</h4>
+                            <p><strong>Payment ID:</strong> ${payment.id}</p>
+                            <p><strong>Amount:</strong> ${RentariumUtils.formatCurrency(payment.amount)}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="payment-status status-${payment.status}">
+                                    ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                                </span>
+                            </p>
+                            <p><strong>Payment Date:</strong> ${RentariumUtils.formatDate(payment.paymentDate)}</p>
+                            ${payment.dueDate ? `<p><strong>Due Date:</strong> ${RentariumUtils.formatDate(payment.dueDate)}</p>` : ''}
+                        </div>
+                        <div>
+                            <h4>Tenant Information</h4>
+                            ${tenant ? `
+                                <p><strong>Name:</strong> ${tenant.fullName}</p>
+                                <p><strong>Email:</strong> ${tenant.email}</p>
+                                <p><strong>Phone:</strong> ${tenant.phone}</p>
+                            ` : '<p>Tenant information not available</p>'}
+                            ${room ? `<p><strong>Room:</strong> ${room.roomNumber}</p>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4>Payment Details</h4>
+                        <p><strong>Payment Method:</strong> ${payment.paymentMethod}</p>
+                        ${payment.receiptNumber ? `<p><strong>Receipt Number:</strong> ${payment.receiptNumber}</p>` : ''}
+                        ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="editPayment('${payment.id}'); closePaymentDetailsModal()">
+                            <i class="fas fa-edit"></i> Edit Payment
+                        </button>
+                        ${payment.status !== 'paid' ? `
+                            <button class="btn btn-success" onclick="markAsPaid('${payment.id}'); closePaymentDetailsModal()">
+                                <i class="fas fa-check"></i> Mark as Paid
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="printReceipt('${payment.id}')">
+                            <i class="fas fa-print"></i> Print Receipt
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('paymentDetailsContent').innerHTML = detailsContent;
+            document.getElementById('paymentDetailsModal').classList.add('active');
+        }
+
+        function closePaymentDetailsModal() {
+            document.getElementById('paymentDetailsModal').classList.remove('active');
+        }
+
+        function editPayment(paymentId) {
+            currentPaymentId = paymentId;
+            const payment = paymentManager.getPaymentById(paymentId);
+            if (!payment) return;
+            
+            // For now, just update status
+            const newStatus = prompt('Enter new status (paid/pending/overdue):', payment.status);
+            if (!newStatus || !['paid', 'pending', 'overdue'].includes(newStatus)) return;
+            
+            const result = paymentManager.updatePayment(paymentId, { status: newStatus });
+            if (result.success) {
+                RentariumUtils.showNotification('Payment updated successfully!', 'success');
+                loadPayments();
+                loadSummary();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        }
+
+        async function markAsPaid(paymentId) {
+            const confirm = await RentariumUtils.confirmAction('Mark this payment as paid?');
+            if (!confirm) return;
+            
+            const result = paymentManager.markAsPaid(paymentId);
+            if (result.success) {
+                RentariumUtils.showNotification('Payment marked as paid!', 'success');
+                loadPayments();
+                loadSummary();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        }
+
+        function filterPayments() {
+            loadPayments();
+        }
+
+        function exportToCSV() {
+            const payments = paymentManager.getAllPayments();
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            
+            let csv = 'Payment ID,Tenant Name,Room Number,Amount,Payment Date,Due Date,Method,Status,Receipt Number\n';
+            
+            payments.forEach(payment => {
+                const tenant = tenants.find(t => t.id === payment.tenantId);
+                const room = rooms.find(r => r.id === payment.roomId);
+                
+                csv += `"${payment.id}","${tenant ? tenant.fullName : 'Unknown'}","${room ? room.roomNumber : ''}",`;
+                csv += `${payment.amount},"${payment.paymentDate}","${payment.dueDate || ''}",`;
+                csv += `"${payment.paymentMethod}","${payment.status}","${payment.receiptNumber || ''}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payments_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            RentariumUtils.showNotification('CSV exported successfully!', 'success');
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        function generateMonthlyReport() {
+            const now = new Date();
+            const month = now.toLocaleString('default', { month: 'long' });
+            const year = now.getFullYear();
+            
+            const payments = paymentManager.getAllPayments();
+            const monthlyPayments = payments.filter(p => {
+                const paymentDate = new Date(p.paymentDate);
+                return paymentDate.getMonth() === now.getMonth() && 
+                       paymentDate.getFullYear() === now.getFullYear();
+            });
+            
+            const totalAmount = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
+            const paidCount = monthlyPayments.filter(p => p.status === 'paid').length;
+            const pendingCount = monthlyPayments.filter(p => p.status === 'pending').length;
+            
+            const reportContent = `
+                <div style="padding: 30px;">
+                    <h2 style="text-align: center; margin-bottom: 30px;">Monthly Payment Report</h2>
+                    <div style="margin-bottom: 30px;">
+                        <h3>${month} ${year}</h3>
+                        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold;">${RentariumUtils.formatCurrency(totalAmount)}</div>
+                            <div>Total Collected</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold;">${paidCount}</div>
+                            <div>Paid Payments</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: bold;">${pendingCount}</div>
+                            <div>Pending Payments</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px;">
+                        <h4>Summary</h4>
+                        <p>Total payments processed: ${monthlyPayments.length}</p>
+                        <p>Average payment amount: ${RentariumUtils.formatCurrency(totalAmount / (monthlyPayments.length || 1))}</p>
+                        <p>Collection rate: ${Math.round((paidCount / (monthlyPayments.length || 1)) * 100)}%</p>
+                    </div>
+                </div>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Monthly Payment Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 40px; }
+                            @media print {
+                                body { margin: 0; }
+                                button { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${reportContent}
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Print Report
+                            </button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                                Close
+                            </button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function printReceipt(paymentId) {
+            const payment = paymentManager.getPaymentById(paymentId);
+            if (!payment) return;
+            
+            const tenants = JSON.parse(localStorage.getItem('tenants')) || [];
+            const rooms = JSON.parse(localStorage.getItem('rooms')) || [];
+            const tenant = tenants.find(t => t.id === payment.tenantId);
+            const room = rooms.find(r => r.id === payment.roomId);
+            
+            const receiptContent = `
+                <div style="text-align: center; padding: 30px;">
+                    <h2 style="margin-bottom: 5px;">Rentarium</h2>
+                    <p style="margin-bottom: 30px;">Apartment Rental Management System</p>
+                    
+                    <h3 style="margin-bottom: 30px;">PAYMENT RECEIPT</h3>
+                    
+                    <div style="text-align: left; max-width: 400px; margin: 0 auto;">
+                        <p><strong>Receipt No:</strong> ${payment.receiptNumber || payment.id}</p>
+                        <p><strong>Date:</strong> ${RentariumUtils.formatDate(payment.paymentDate)}</p>
+                        
+                        <hr style="margin: 20px 0;">
+                        
+                        <p><strong>Received from:</strong> ${tenant ? tenant.fullName : 'Unknown'}</p>
+                        ${room ? `<p><strong>Room No:</strong> ${room.roomNumber}</p>` : ''}
+                        <p><strong>Amount:</strong> ${RentariumUtils.formatCurrency(payment.amount)}</p>
+                        <p><strong>Payment Method:</strong> ${payment.paymentMethod}</p>
+                        <p><strong>Status:</strong> ${payment.status.toUpperCase()}</p>
+                        
+                        ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
+                        
+                        <hr style="margin: 20px 0;">
+                        
+                        <div style="text-align: center; margin-top: 40px;">
+                            <p>_________________________</p>
+                            <p>Authorized Signature</p>
+                            <p style="margin-top: 30px;">Thank you for your payment!</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Payment Receipt</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; }
+                            @media print {
+                                button { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${receiptContent}
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Print Receipt
+                            </button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                                Close
+                            </button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>

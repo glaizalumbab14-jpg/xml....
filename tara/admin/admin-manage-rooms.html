@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rooms - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .room-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .room-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .room-card:hover {
+            transform: translateY(-5px);
+        }
+        .room-card-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .room-card-body {
+            padding: 20px;
+        }
+        .room-amenities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .amenity-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .room-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <p id="adminName">System Admin</p>
+                        <small>Administrator</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="admin-create-tenant.html"><i class="fas fa-user-plus"></i> Create Tenant</a></li>
+                <li><a href="admin-manage-rooms.html" class="active"><i class="fas fa-home"></i> Manage Rooms</a></li>
+                <li><a href="admin-rental-requests.html"><i class="fas fa-file-contract"></i> Rental Requests</a></li>
+                <li><a href="admin-payment-records.html"><i class="fas fa-credit-card"></i> Payments</a></li>
+                <li><a href="admin-tenant-list.html"><i class="fas fa-users"></i> Tenant List</a></li>
+                <li><a href="admin-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Manage Rooms</h1>
+                    <p>Add, edit, and manage apartment rooms</p>
+                </div>
+                <button class="btn btn-primary" onclick="showAddRoomModal()">
+                    <i class="fas fa-plus"></i> Add New Room
+                </button>
+            </div>
+
+            <div class="content-container">
+                <!-- Room Statistics -->
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Rooms</div>
+                        <div class="stat-value" id="totalRoomsStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Available</div>
+                        <div class="stat-value" id="availableRoomsStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Occupied</div>
+                        <div class="stat-value" id="occupiedRoomsStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Maintenance</div>
+                        <div class="stat-value" id="maintenanceRoomsStat">0</div>
+                    </div>
+                </div>
+
+                <!-- Room Filters -->
+                <div class="room-filters">
+                    <h3><i class="fas fa-filter"></i> Filter Rooms</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="statusFilter" class="form-control" onchange="filterRooms()">
+                                <option value="">All Status</option>
+                                <option value="available">Available</option>
+                                <option value="occupied">Occupied</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Room Type</label>
+                            <select id="typeFilter" class="form-control" onchange="filterRooms()">
+                                <option value="">All Types</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedrooms">2 Bedrooms</option>
+                                <option value="3 Bedrooms">3 Bedrooms</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Floor</label>
+                            <select id="floorFilter" class="form-control" onchange="filterRooms()">
+                                <option value="">All Floors</option>
+                                <option value="Ground Floor">Ground Floor</option>
+                                <option value="1st Floor">1st Floor</option>
+                                <option value="2nd Floor">2nd Floor</option>
+                                <option value="3rd Floor">3rd Floor</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Price Range</label>
+                            <input type="range" id="priceFilter" min="0" max="50000" step="1000" 
+                                   class="form-control" onchange="updatePriceLabel()">
+                            <div>Up to: ₱<span id="priceLabel">50000</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rooms Grid -->
+                <div id="roomsContainer" class="room-grid">
+                    <!-- Rooms will be loaded here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Room Modal -->
+    <div id="addRoomModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Room</h3>
+                <button class="close-modal" onclick="closeAddRoomModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addRoomForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Room Number *</label>
+                            <input type="text" id="roomNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Room Type *</label>
+                            <select id="roomType" required>
+                                <option value="">Select Type</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedrooms">2 Bedrooms</option>
+                                <option value="3 Bedrooms">3 Bedrooms</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Floor *</label>
+                            <select id="roomFloor" required>
+                                <option value="">Select Floor</option>
+                                <option value="Ground Floor">Ground Floor</option>
+                                <option value="1st Floor">1st Floor</option>
+                                <option value="2nd Floor">2nd Floor</option>
+                                <option value="3rd Floor">3rd Floor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Price per Month (₱) *</label>
+                            <input type="number" id="roomPrice" min="0" step="100" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Size (sqm)</label>
+                            <input type="text" id="roomSize" placeholder="e.g., 25 sqm">
+                        </div>
+                        <div class="form-group">
+                            <label>Initial Status</label>
+                            <select id="roomStatus">
+                                <option value="available">Available</option>
+                                <option value="maintenance">Under Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Amenities (comma separated)</label>
+                        <input type="text" id="roomAmenities" placeholder="e.g., Aircon, WiFi, Kitchen">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="roomDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add Room</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeAddRoomModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Room Modal -->
+    <div id="editRoomModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Room</h3>
+                <button class="close-modal" onclick="closeEditRoomModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editRoomForm">
+                    <input type="hidden" id="editRoomId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Room Number *</label>
+                            <input type="text" id="editRoomNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Room Type *</label>
+                            <select id="editRoomType" required>
+                                <option value="">Select Type</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedrooms">2 Bedrooms</option>
+                                <option value="3 Bedrooms">3 Bedrooms</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Floor *</label>
+                            <select id="editRoomFloor" required>
+                                <option value="">Select Floor</option>
+                                <option value="Ground Floor">Ground Floor</option>
+                                <option value="1st Floor">1st Floor</option>
+                                <option value="2nd Floor">2nd Floor</option>
+                                <option value="3rd Floor">3rd Floor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Price per Month (₱) *</label>
+                            <input type="number" id="editRoomPrice" min="0" step="100" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Size (sqm)</label>
+                            <input type="text" id="editRoomSize">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="editRoomStatus">
+                                <option value="available">Available</option>
+                                <option value="occupied">Occupied</option>
+                                <option value="maintenance">Under Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Amenities (comma separated)</label>
+                        <input type="text" id="editRoomAmenities">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="editRoomDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeEditRoomModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/rooms.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('admin')) {
+            window.location.href = '../admin-login.html';
+        }
+
+        let currentEditingRoomId = null;
+        const roomManager = window.roomManager || new RoomManager();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = authSystem.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminName').textContent = admin.fullName || admin.username;
+            }
+            loadRooms();
+            updateStatistics();
+            initializePriceFilter();
+        });
+
+        function loadRooms() {
+            const roomsContainer = document.getElementById('roomsContainer');
+            const rooms = roomManager.getAllRooms();
+            
+            if (rooms.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-home fa-3x" style="color: #ddd;"></i>
+                        <h3>No Rooms Added</h3>
+                        <p>Add your first room to get started.</p>
+                        <button class="btn btn-primary" onclick="showAddRoomModal()">
+                            <i class="fas fa-plus"></i> Add Room
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            roomsContainer.innerHTML = '';
+            
+            rooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                
+                // Determine status color
+                let statusColor = '#27ae60';
+                let statusText = 'Available';
+                if (room.status === 'occupied') {
+                    statusColor = '#e74c3c';
+                    statusText = 'Occupied';
+                } else if (room.status === 'maintenance') {
+                    statusColor = '#f39c12';
+                    statusText = 'Maintenance';
+                }
+
+                roomCard.innerHTML = `
+                    <div class="room-card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Room ${room.roomNumber}</h3>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">${room.type} • ${room.floor}</p>
+                            </div>
+                            <span style="background: ${statusColor}; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                                ${statusText}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="room-card-body">
+                        <div style="font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin-bottom: 10px;">
+                            ₱${room.price.toLocaleString()}/month
+                        </div>
+                        <div style="color: #666; margin-bottom: 10px;">
+                            <i class="fas fa-ruler-combined"></i> ${room.size || 'Size not specified'}
+                        </div>
+                        ${room.description ? `<p style="color: #666; margin-bottom: 15px;">${room.description}</p>` : ''}
+                        
+                        ${room.amenities && room.amenities.length > 0 ? `
+                            <div class="room-amenities">
+                                ${room.amenities.map(amenity => `
+                                    <span class="amenity-tag">${amenity}</span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="room-actions">
+                            <button class="btn-action btn-edit" onclick="editRoom('${room.id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteRoom('${room.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <button class="btn-action btn-view" onclick="viewRoomDetails('${room.id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                `;
+                roomsContainer.appendChild(roomCard);
+            });
+        }
+
+        function updateStatistics() {
+            const stats = roomManager.getRoomStatistics();
+            document.getElementById('totalRoomsStat').textContent = stats.totalRooms;
+            document.getElementById('availableRoomsStat').textContent = stats.availableRooms;
+            document.getElementById('occupiedRoomsStat').textContent = stats.occupiedRooms;
+            document.getElementById('maintenanceRoomsStat').textContent = stats.maintenanceRooms;
+        }
+
+        function showAddRoomModal() {
+            document.getElementById('addRoomModal').classList.add('active');
+        }
+
+        function closeAddRoomModal() {
+            document.getElementById('addRoomModal').classList.remove('active');
+            document.getElementById('addRoomForm').reset();
+        }
+
+        function showEditRoomModal() {
+            document.getElementById('editRoomModal').classList.add('active');
+        }
+
+        function closeEditRoomModal() {
+            document.getElementById('editRoomModal').classList.remove('active');
+            document.getElementById('editRoomForm').reset();
+            currentEditingRoomId = null;
+        }
+
+        // Handle add room form submission
+        document.getElementById('addRoomForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const roomData = {
+                roomNumber: document.getElementById('roomNumber').value,
+                type: document.getElementById('roomType').value,
+                floor: document.getElementById('roomFloor').value,
+                price: parseFloat(document.getElementById('roomPrice').value),
+                size: document.getElementById('roomSize').value,
+                amenities: document.getElementById('roomAmenities').value,
+                status: document.getElementById('roomStatus').value,
+                description: document.getElementById('roomDescription').value
+            };
+
+            const result = roomManager.addRoom(roomData);
+            if (result.success) {
+                RentariumUtils.showNotification('Room added successfully!', 'success');
+                closeAddRoomModal();
+                loadRooms();
+                updateStatistics();
+                filterRooms();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        });
+
+        // Handle edit room form submission
+        document.getElementById('editRoomForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentEditingRoomId) return;
+            
+            const updateData = {
+                roomNumber: document.getElementById('editRoomNumber').value,
+                type: document.getElementById('editRoomType').value,
+                floor: document.getElementById('editRoomFloor').value,
+                price: parseFloat(document.getElementById('editRoomPrice').value),
+                size: document.getElementById('editRoomSize').value,
+                amenities: document.getElementById('editRoomAmenities').value,
+                status: document.getElementById('editRoomStatus').value,
+                description: document.getElementById('editRoomDescription').value
+            };
+
+            const result = roomManager.updateRoom(currentEditingRoomId, updateData);
+            if (result.success) {
+                RentariumUtils.showNotification('Room updated successfully!', 'success');
+                closeEditRoomModal();
+                loadRooms();
+                updateStatistics();
+                filterRooms();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        });
+
+        function editRoom(roomId) {
+            const room = roomManager.getRoomById(roomId);
+            if (!room) return;
+            
+            currentEditingRoomId = roomId;
+            
+            // Fill form with room data
+            document.getElementById('editRoomId').value = roomId;
+            document.getElementById('editRoomNumber').value = room.roomNumber;
+            document.getElementById('editRoomType').value = room.type;
+            document.getElementById('editRoomFloor').value = room.floor;
+            document.getElementById('editRoomPrice').value = room.price;
+            document.getElementById('editRoomSize').value = room.size || '';
+            document.getElementById('editRoomAmenities').value = room.amenities ? room.amenities.join(', ') : '';
+            document.getElementById('editRoomStatus').value = room.status;
+            document.getElementById('editRoomDescription').value = room.description || '';
+            
+            showEditRoomModal();
+        }
+
+        async function deleteRoom(roomId) {
+            const confirm = await RentariumUtils.confirmAction('Are you sure you want to delete this room? This action cannot be undone.');
+            if (!confirm) return;
+            
+            const result = roomManager.deleteRoom(roomId);
+            if (result.success) {
+                RentariumUtils.showNotification('Room deleted successfully!', 'success');
+                loadRooms();
+                updateStatistics();
+                filterRooms();
+            } else {
+                RentariumUtils.showNotification(result.message, 'error');
+            }
+        }
+
+        function viewRoomDetails(roomId) {
+            const room = roomManager.getRoomById(roomId);
+            if (!room) return;
+            
+            // Show room details in a modal
+            const modalContent = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">Room ${room.roomNumber} Details</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <p><strong>Type:</strong> ${room.type}</p>
+                            <p><strong>Floor:</strong> ${room.floor}</p>
+                            <p><strong>Price:</strong> ₱${room.price.toLocaleString()}/month</p>
+                            <p><strong>Size:</strong> ${room.size || 'Not specified'}</p>
+                            <p><strong>Status:</strong> ${room.status}</p>
+                        </div>
+                        <div>
+                            <p><strong>Amenities:</strong></p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                                ${room.amenities && room.amenities.length > 0 
+                                    ? room.amenities.map(a => `<span class="amenity-tag">${a}</span>`).join('')
+                                    : 'No amenities listed'}
+                            </div>
+                        </div>
+                    </div>
+                    ${room.description ? `<p style="margin-top: 20px;"><strong>Description:</strong><br>${room.description}</p>` : ''}
+                    
+                    ${room.status === 'occupied' ? `
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                            <h4>Occupancy Information</h4>
+                            <p><strong>Tenant ID:</strong> ${room.tenantId || 'Not available'}</p>
+                            ${room.occupiedSince ? `<p><strong>Occupied Since:</strong> ${RentariumUtils.formatDate(room.occupiedSince)}</p>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            RentariumUtils.showCustomModal('Room Details', modalContent);
+        }
+
+        function initializePriceFilter() {
+            const priceFilter = document.getElementById('priceFilter');
+            const priceLabel = document.getElementById('priceLabel');
+            
+            // Set initial value
+            const rooms = roomManager.getAllRooms();
+            const maxPrice = rooms.length > 0 
+                ? Math.max(...rooms.map(r => r.price))
+                : 50000;
+            
+            priceFilter.max = Math.max(50000, maxPrice);
+            priceFilter.value = priceFilter.max;
+            priceLabel.textContent = priceFilter.value.toLocaleString();
+        }
+
+        function updatePriceLabel() {
+            const priceFilter = document.getElementById('priceFilter');
+            const priceLabel = document.getElementById('priceLabel');
+            priceLabel.textContent = priceFilter.value.toLocaleString();
+            filterRooms();
+        }
+
+        function filterRooms() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const floorFilter = document.getElementById('floorFilter').value;
+            const maxPrice = parseInt(document.getElementById('priceFilter').value);
+            
+            const rooms = roomManager.getAllRooms();
+            const filteredRooms = rooms.filter(room => {
+                if (statusFilter && room.status !== statusFilter) return false;
+                if (typeFilter && room.type !== typeFilter) return false;
+                if (floorFilter && room.floor !== floorFilter) return false;
+                if (room.price > maxPrice) return false;
+                return true;
+            });
+            
+            displayFilteredRooms(filteredRooms);
+        }
+
+        function displayFilteredRooms(rooms) {
+            const roomsContainer = document.getElementById('roomsContainer');
+            
+            if (rooms.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-search fa-3x" style="color: #ddd;"></i>
+                        <h3>No Rooms Found</h3>
+                        <p>Try changing your filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Clear and display filtered rooms
+            roomsContainer.innerHTML = '';
+            rooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = 'room-card';
+                roomCard.innerHTML = `
+                    <div class="room-card-header">
+                        <h3 style="margin: 0;">Room ${room.roomNumber}</h3>
+                        <p style="margin: 5px 0 0 0; opacity: 0.9;">${room.type} • ${room.floor}</p>
+                    </div>
+                    <div class="room-card-body">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #2c3e50;">
+                            ₱${room.price.toLocaleString()}/month
+                        </div>
+                        <div style="color: #666; margin: 10px 0;">
+                            <span style="background: ${room.status === 'available' ? '#27ae60' : room.status === 'occupied' ? '#e74c3c' : '#f39c12'}; 
+                                  color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                                ${room.status}
+                            </span>
+                        </div>
+                        <div class="room-actions">
+                            <button class="btn-action btn-edit" onclick="editRoom('${room.id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn-action btn-view" onclick="viewRoomDetails('${room.id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                `;
+                roomsContainer.appendChild(roomCard);
+            });
+        }
+
+        // Add custom modal function to utils
+        if (!window.RentariumUtils.showCustomModal) {
+            RentariumUtils.showCustomModal = function(title, content) {
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title">${title}</h3>
+                            <button class="close-modal" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            ${content}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">Close</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History - Rentarium</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .payment-history-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .payment-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-overdue {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .export-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .yearly-summary {
+            margin-top: 30px;
+        }
+        .monthly-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            height: 200px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .chart-bar {
+            flex: 1;
+            background: #3498db;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            min-height: 10px;
+        }
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .chart-value {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Rentarium</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="tenantInitial">T</div>
+                    <div>
+                        <p id="tenantName">Tenant</p>
+                        <small>Tenant Portal</small>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="tenant-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                <li><a href="tenant-room-list.html"><i class="fas fa-home"></i> Browse Rooms</a></li>
+                <li><a href="tenant-rental-request.html"><i class="fas fa-file-contract"></i> Rental Request</a></li>
+                <li><a href="tenant-payment.html"><i class="fas fa-credit-card"></i> Make Payment</a></li>
+                <li><a href="tenant-payment-history.html" class="active"><i class="fas fa-history"></i> Payment History</a></li>
+                <li><a href="tenant-announcements.html"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><button class="logout-btn btn" onclick="authSystem.logout()"><i class="fas fa-sign-out-alt"></i> Logout</button></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Payment History</h1>
+                    <p>View and track all your payments</p>
+                </div>
+                <a href="tenant-payment.html" class="btn btn-primary">
+                    <i class="fas fa-credit-card"></i> Make New Payment
+                </a>
+            </div>
+
+            <div class="content-container">
+                <!-- Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Paid</div>
+                        <div class="stat-value" id="totalPaid">₱0</div>
+                        <div class="stat-sublabel">All Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">This Year</div>
+                        <div class="stat-value" id="yearPaid">₱0</div>
+                        <div class="stat-sublabel">Current Year</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">This Month</div>
+                        <div class="stat-value" id="monthPaid">₱0</div>
+                        <div class="stat-sublabel">Current Month</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Payments</div>
+                        <div class="stat-value" id="totalPayments">0</div>
+                        <div class="stat-sublabel">Records</div>
+                    </div>
+                </div>
+
+                <!-- Export Section -->
+                <div class="export-section">
+                    <div>
+                        <h3 style="margin: 0;">Your Payment Records</h3>
+                        <p style="margin: 5px 0 0 0; color: #666;">View, filter, and export your payment history</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportToCSV()">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="printStatement()">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="payment-history-filters">
+                    <h3><i class="fas fa-filter"></i> Filter Payments</h3>
+                    <div class="filter-row">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Year</label>
+                            <select id="yearFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Years</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Month</label>
+                            <select id="monthFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Months</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Status</label>
+                            <select id="statusFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Status</option>
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="overdue">Overdue</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            <label>Payment Method</label>
+                            <select id="methodFilter" class="form-control" onchange="filterPayments()">
+                                <option value="">All Methods</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="PayMaya">PayMaya</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment History Table -->
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Receipt No.</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <!-- Payments will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Yearly Summary -->
+                <div class="yearly-summary">
+                    <h3>Yearly Payment Summary</h3>
+                    <div id="yearlyChart" class="monthly-chart">
+                        <!-- Chart will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Payment Details Modal -->
+    <div id="paymentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Payment Details</h3>
+                <button class="close-modal" onclick="closePaymentDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="paymentDetailsContent">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Payment Receipt</h3>
+                <button class="close-modal" onclick="closeReceiptModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+                <!-- Receipt will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/payments.js"></script>
+    <script>
+        // Check authentication
+        if (!authSystem.requireAuth('tenant')) {
+            window.location.href = '../tenant-login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tenant = authSystem.getCurrentUser();
+            if (tenant) {
+                document.getElementById('tenantName').textContent = tenant.fullName;
+                document.getElementById('tenantInitial').textContent = tenant.fullName.charAt(0);
+            }
+            loadPaymentHistory();
+            updateStatistics();
+            generateYearlyChart();
+        });
+
+        function loadPaymentHistory() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            const tableBody = document.getElementById('paymentsTableBody');
+            
+            if (payments.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-credit-card fa-3x" style="color: #ddd; margin-bottom: 20px;"></i>
+                            <h3>No Payment Records</h3>
+                            <p>You haven't made any payments yet.</p>
+                            <a href="tenant-payment.html" class="btn btn-primary">
+                                <i class="fas fa-credit-card"></i> Make Your First Payment
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Apply filters
+            let filteredPayments = [...payments];
+            const yearFilter = document.getElementById('yearFilter').value;
+            const monthFilter = document.getElementById('monthFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const methodFilter = document.getElementById('methodFilter').value;
+            
+            if (yearFilter) {
+                filteredPayments = filteredPayments.filter(p => {
+                    const paymentYear = new Date(p.paymentDate).getFullYear();
+                    return paymentYear == yearFilter;
+                });
+            }
+            
+            if (monthFilter) {
+                filteredPayments = filteredPayments.filter(p => {
+                    const paymentMonth = new Date(p.paymentDate).getMonth() + 1;
+                    return paymentMonth == monthFilter;
+                });
+            }
+            
+            if (statusFilter) {
+                filteredPayments = filteredPayments.filter(p => p.status === statusFilter);
+            }
+            
+            if (methodFilter) {
+                filteredPayments = filteredPayments.filter(p => p.paymentMethod === methodFilter);
+            }
+            
+            // Sort by date (newest first)
+            filteredPayments.sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+            
+            // Clear table
+            tableBody.innerHTML = '';
+            
+            // Display payments
+            filteredPayments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                    <td>${payment.receiptNumber || '-'}</td>
+                    <td>${payment.notes || `Rent for Room ${payment.roomNumber}`}</td>
+                    <td>${RentariumUtils.formatCurrency(payment.amount)}</td>
+                    <td>${payment.paymentMethod}</td>
+                    <td>
+                        <span class="payment-status status-${payment.status}">
+                            ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn-action btn-view" onclick="viewPaymentDetails('${payment.id}')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        ${payment.status === 'paid' ? `
+                            <button class="btn-action btn-success" onclick="viewReceipt('${payment.id}')">
+                                <i class="fas fa-receipt"></i> Receipt
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateStatistics() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            
+            // Total paid
+            const totalPaid = payments
+                .filter(p => p.status === 'paid')
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            // This year paid
+            const yearPaid = payments
+                .filter(p => {
+                    const paymentYear = new Date(p.paymentDate).getFullYear();
+                    return paymentYear === currentYear && p.status === 'paid';
+                })
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            // This month paid
+            const monthPaid = payments
+                .filter(p => {
+                    const paymentDate = new Date(p.paymentDate);
+                    return paymentDate.getFullYear() === currentYear &&
+                           paymentDate.getMonth() + 1 === currentMonth &&
+                           p.status === 'paid';
+                })
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            document.getElementById('totalPaid').textContent = RentariumUtils.formatCurrency(totalPaid);
+            document.getElementById('yearPaid').textContent = RentariumUtils.formatCurrency(yearPaid);
+            document.getElementById('monthPaid').textContent = RentariumUtils.formatCurrency(monthPaid);
+            document.getElementById('totalPayments').textContent = payments.length;
+        }
+
+        function filterPayments() {
+            loadPaymentHistory();
+        }
+
+        function viewPaymentDetails(paymentId) {
+            const payment = paymentManager.getPaymentById(paymentId);
+            if (!payment) return;
+            
+            const detailsContent = `
+                <div style="padding: 20px;">
+                    <h4>Payment Information</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <p><strong>Payment ID:</strong> ${payment.id}</p>
+                            <p><strong>Date:</strong> ${RentariumUtils.formatDate(payment.paymentDate)}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="payment-status status-${payment.status}">
+                                    ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                                </span>
+                            </p>
+                            <p><strong>Receipt No:</strong> ${payment.receiptNumber || 'Not available'}</p>
+                        </div>
+                        <div>
+                            <p><strong>Amount:</strong> ${RentariumUtils.formatCurrency(payment.amount)}</p>
+                            <p><strong>Method:</strong> ${payment.paymentMethod}</p>
+                            ${payment.dueDate ? `<p><strong>Due Date:</strong> ${new Date(payment.dueDate).toLocaleDateString()}</p>` : ''}
+                            <p><strong>Room:</strong> ${payment.roomNumber || 'Not specified'}</p>
+                        </div>
+                    </div>
+                    
+                    ${payment.notes ? `
+                        <div style="margin-bottom: 20px;">
+                            <h5>Notes</h5>
+                            <p>${payment.notes}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        ${payment.status === 'paid' ? `
+                            <button class="btn btn-success" onclick="viewReceipt('${payment.id}'); closePaymentDetailsModal()">
+                                <i class="fas fa-receipt"></i> View Receipt
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-secondary" onclick="closePaymentDetailsModal()">Close</button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('paymentDetailsContent').innerHTML = detailsContent;
+            document.getElementById('paymentDetailsModal').classList.add('active');
+        }
+
+        function closePaymentDetailsModal() {
+            document.getElementById('paymentDetailsModal').classList.remove('active');
+        }
+
+        function viewReceipt(paymentId) {
+            const payment = paymentManager.getPaymentById(paymentId);
+            if (!payment) return;
+            
+            const receiptContent = `
+                <div style="padding: 20px; text-align: center;">
+                    <h3 style="margin-bottom: 5px;">Rentarium</h3>
+                    <p style="margin-bottom: 30px; color: #666;">Apartment Rental Management</p>
+                    
+                    <h4 style="margin-bottom: 30px;">PAYMENT RECEIPT</h4>
+                    
+                    <div style="text-align: left; margin-bottom: 30px;">
+                        <p><strong>Receipt No:</strong> ${payment.receiptNumber || payment.id}</p>
+                        <p><strong>Date:</strong> ${RentariumUtils.formatDate(payment.paymentDate)}</p>
+                        <p><strong>Tenant:</strong> ${payment.tenantName}</p>
+                        ${payment.roomNumber ? `<p><strong>Room:</strong> ${payment.roomNumber}</p>` : ''}
+                        <p><strong>Amount:</strong> ${RentariumUtils.formatCurrency(payment.amount)}</p>
+                        <p><strong>Payment Method:</strong> ${payment.paymentMethod}</p>
+                        <p><strong>Status:</strong> ${payment.status.toUpperCase()}</p>
+                    </div>
+                    
+                    <hr style="margin: 20px 0;">
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <p>_________________________</p>
+                        <p>Authorized Signature</p>
+                        <p style="margin-top: 30px; color: #666;">Thank you for your payment!</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('receiptContent').innerHTML = receiptContent;
+            document.getElementById('receiptModal').classList.add('active');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').classList.remove('active');
+        }
+
+        function generateYearlyChart() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            const currentYear = new Date().getFullYear();
+            
+            // Initialize monthly totals
+            const monthlyTotals = Array(12).fill(0);
+            
+            // Calculate monthly totals for current year
+            payments.forEach(payment => {
+                const paymentDate = new Date(payment.paymentDate);
+                if (paymentDate.getFullYear() === currentYear && payment.status === 'paid') {
+                    const month = paymentDate.getMonth(); // 0-11
+                    monthlyTotals[month] += payment.amount;
+                }
+            });
+            
+            // Find max for scaling
+            const maxAmount = Math.max(...monthlyTotals, 1); // At least 1 to avoid division by zero
+            
+            // Generate chart
+            const chartDiv = document.getElementById('yearlyChart');
+            chartDiv.innerHTML = '';
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            monthlyTotals.forEach((amount, index) => {
+                const barHeight = (amount / maxAmount) * 150; // Max height 150px
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.height = `${barHeight}px`;
+                bar.innerHTML = `
+                    <div class="chart-value">${amount > 0 ? RentariumUtils.formatCurrency(amount) : ''}</div>
+                    <div class="chart-label">${months[index]}</div>
+                `;
+                chartDiv.appendChild(bar);
+            });
+        }
+
+        function exportToPDF() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+            
+            const content = `
+                <html>
+                    <head>
+                        <title>Payment History - ${tenant.fullName}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 40px; }
+                            h1 { color: #2c3e50; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                            th { background-color: #f8f9fa; }
+                            .summary { margin: 30px 0; padding: 20px; background: #f8f9fa; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Payment History</h1>
+                        <p><strong>Tenant:</strong> ${tenant.fullName}</p>
+                        <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                        
+                        <div class="summary">
+                            <h3>Summary</h3>
+                            <p><strong>Total Payments:</strong> ${payments.length}</p>
+                            <p><strong>Total Paid:</strong> ${RentariumUtils.formatCurrency(totalPaid)}</p>
+                        </div>
+                        
+                        <h3>Payment Details</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Receipt No.</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payments.map(p => `
+                                    <tr>
+                                        <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
+                                        <td>${p.receiptNumber || '-'}</td>
+                                        <td>${RentariumUtils.formatCurrency(p.amount)}</td>
+                                        <td>${p.paymentMethod}</td>
+                                        <td>${p.status}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </body>
+                </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(content);
+            printWindow.document.close();
+            printWindow.print();
+            
+            RentariumUtils.showNotification('PDF generated successfully!', 'success');
+        }
+
+        function exportToCSV() {
+            const tenant = authSystem.getCurrentUser();
+            const payments = paymentManager.getPaymentsByTenant(tenant.id);
+            
+            let csv = 'Date,Receipt Number,Description,Amount,Payment Method,Status\n';
+            
+            payments.forEach(payment => {
+                csv += `"${new Date(payment.paymentDate).toLocaleDateString()}","${payment.receiptNumber || ''}",`;
+                csv += `"${payment.notes || `Rent for Room ${payment.roomNumber}`}",`;
+                csv += `${payment.amount},"${payment.paymentMethod}","${payment.status}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payment_history_${tenant.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            RentariumUtils.showNotification('CSV exported successfully!', 'success');
+        }
+
+        function printStatement() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
